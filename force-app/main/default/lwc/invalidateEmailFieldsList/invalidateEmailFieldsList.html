@@ -1,0 +1,31 @@
+<template>
+  <lightning-card title="Invalidate Email Fields Configuration" icon-name="standard:custom_metadata_type">
+    <div class="slds-m-around_medium">
+      <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+      </template>
+
+      <template if:true={error}>
+        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+          <span class="slds-assistive-text">Error</span>
+          <h2>Error loading Invalidate Email Fields: {error}</h2>
+        </div>
+      </template>
+
+      <template if:true={hasData}>
+        <lightning-datatable key-field="Id" data={invalidateEmailFields} columns={columns} hide-checkbox-column="true">
+        </lightning-datatable>
+      </template>
+
+      <template if:false={hasData}>
+        <template if:false={isLoading}>
+          <template if:false={error}>
+            <div class="slds-text-align_center slds-p-around_medium">
+              <p class="slds-text-color_weak">No Invalidate Email Fields configured.</p>
+            </div>
+          </template>
+        </template>
+      </template>
+    </div>
+  </lightning-card>
+</template>
