@@ -1,5 +1,10 @@
 <template>
   <lightning-card title="Invalidate Email Fields Configuration" icon-name="standard:custom_metadata_type">
+    <div slot="actions">
+      <lightning-button variant="brand" label="New" title="Create new Email Invalidator Field" icon-name="utility:add"
+        onclick={handleNewRecord}>
+      </lightning-button>
+    </div>
     <div class="slds-m-around_medium">
       <template if:true={isLoading}>
         <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
@@ -13,7 +18,8 @@
       </template>
 
       <template if:true={hasData}>
-        <lightning-datatable key-field="Id" data={invalidateEmailFields} columns={columns} hide-checkbox-column="true">
+        <lightning-datatable key-field="Id" data={invalidateEmailFields} columns={columns} hide-checkbox-column="true"
+          onrowaction={handleRowAction}>
         </lightning-datatable>
       </template>
 
@@ -26,6 +32,7 @@
           </template>
         </template>
       </template>
+
     </div>
   </lightning-card>
 </template>

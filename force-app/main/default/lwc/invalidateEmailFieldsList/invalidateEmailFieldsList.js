@@ -1,4 +1,5 @@
 import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 import getInvalidateEmailFields from '@salesforce/apex/InvalidateEmailFieldsController.getInvalidateEmailFields';
 
 const COLUMNS = [
@@ -25,10 +26,21 @@ const COLUMNS = [
     fieldName: 'Field_Name__c',
     type: 'text',
     sortable: true
+  },
+  {
+    type: 'action',
+    typeAttributes: {
+      rowActions: [
+        {
+          label: 'Edit',
+          name: 'edit'
+        }
+      ]
+    }
   }
 ];
 
-export default class InvalidateEmailFieldsList extends LightningElement {
+export default class InvalidateEmailFieldsList extends NavigationMixin(LightningElement) {
   columns = COLUMNS;
   invalidateEmailFields = [];
   error;
@@ -54,5 +66,32 @@ export default class InvalidateEmailFieldsList extends LightningElement {
 
   get hasData() {
     return this.invalidateEmailFields && this.invalidateEmailFields.length > 0;
+  }
+
+  handleRowAction(event) {
+    const actionName = event.detail.action.name;
+    const row = event.detail.row;
+
+    if (actionName === 'edit') {
+      // Navigate to the record page for editing
+      this[NavigationMixin.Navigate]({
+        type: 'standard__recordPage',
+        attributes: {
+          recordId: row.Id,
+          objectApiName: 'Email_Invalidator_Fields__mdt',
+          actionName: 'edit'
+        }
+      });
+    }
+  }
+
+  handleNewRecord() {
+    // Navigate to the Custom Metadata Type management page
+    this[NavigationMixin.Navigate]({
+      type: 'standard__webPage',
+      attributes: {
+        url: '/lightning/setup/CustomMetadata/page?address=%2F' + encodeURIComponent('Email_Invalidator_Fields__mdt') + '%3Fsetupid%3DCustomMetadata'
+      }
+    });
   }
 }
