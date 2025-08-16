@@ -4,22 +4,11 @@
  */
 @isTest
 private class InvalidateEmailBatchTest {
+  private static Integer contactCount = 10;
+
   @testSetup
   static void setupTestData() {
-    // Create test contacts with email addresses
-    List<Contact> testContacts = new List<Contact>();
-
-    for (Integer i = 0; i < 10; i++) {
-      testContacts.add(
-        new Contact(
-          FirstName = 'Test',
-          LastName = 'Contact' + i,
-          Email = 'test' + i + '@example.com'
-        )
-      );
-    }
-
-    insert testContacts;
+    InvalidateEmailTestDataFactory.createTestContacts(contactCount);
   }
 
   @isTest
@@ -30,7 +19,7 @@ private class InvalidateEmailBatchTest {
       'Contact',
       new Set<String>{ 'Email' }
     );
-    Database.executeBatch(batch, 25);
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for head room.
 
     Test.stopTest();
 
@@ -41,7 +30,7 @@ private class InvalidateEmailBatchTest {
       WHERE Email LIKE '%.invalid'
     ];
     System.assertEquals(
-      10,
+      contactCount,
       updatedContacts.size(),
       'All contact emails should be invalidated'
     );
@@ -72,7 +61,7 @@ private class InvalidateEmailBatchTest {
       'Contact',
       new Set<String>{ 'Email' }
     );
-    Database.executeBatch(batch, 25);
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for head room
 
     Test.stopTest();
 
@@ -120,7 +109,7 @@ private class InvalidateEmailBatchTest {
       'Contact',
       new Set<String>{ 'Email' }
     );
-    Database.executeBatch(batch, 25);
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom (needed here)
 
     Test.stopTest();
 
