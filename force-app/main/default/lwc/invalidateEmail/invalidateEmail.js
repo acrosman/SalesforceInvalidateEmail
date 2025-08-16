@@ -3,40 +3,42 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import invalidateAllConfiguredEmails from '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura';
 
 export default class InvalidateEmail extends LightningElement {
-  handleClick() {
+
+  async handleClick() {
     // Call the AuraEnabled method to start the batch process
-    invalidateAllConfiguredEmails()
-      .then(response => {
-        // The AuraEnabled method returns a single response object
-        if (response.success) {
-          // Show success toast
-          this.dispatchEvent(
-            new ShowToastEvent({
-              title: 'Email Invalidation Started',
-              message: response.message,
-              variant: 'success'
-            })
-          );
-        } else {
-          // Show error toast
-          this.dispatchEvent(
-            new ShowToastEvent({
-              title: 'Error Starting Email Invalidation',
-              message: response.message,
-              variant: 'error'
-            })
-          );
-        }
-      })
-      .catch(error => {
-        // Handle any unexpected errors
+    try {
+      let response = await invalidateAllConfiguredEmails();
+
+      console.log("Response from function: ");
+      console.log(response);
+      if (response.success) {
+        // Show success toast
         this.dispatchEvent(
           new ShowToastEvent({
-            title: 'Error',
-            message: 'An unexpected error occurred: ' + error.body.message,
+            title: 'Email Invalidation Started',
+            message: response.message,
+            variant: 'success'
+          })
+        );
+      } else {
+        // Show error toast
+        this.dispatchEvent(
+          new ShowToastEvent({
+            title: 'Error Starting Email Invalidation',
+            message: response.message,
             variant: 'error'
           })
         );
-      });
+      }
+    } catch (err) {
+      // Show error toast
+      this.dispatchEvent(
+        new ShowToastEvent({
+          title: 'Exception Occurred while Starting Email Invalidation',
+          message: 'Resolution by developer is probably required.',
+          variant: 'error'
+        })
+      );
+    }
   }
 }
