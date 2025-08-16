@@ -34,14 +34,14 @@ private class InvalidateEmailFlowActionTest {
       FROM Contact
       WHERE Email LIKE '%.invalid'
     ];
-    System.assertEquals(
+    Assert.areEqual(
       contactCount,
       updatedContacts.size(),
       'All contact emails should be invalidated'
     );
 
     for (Contact contact : updatedContacts) {
-      System.assert(
+      Assert.isTrue(
         contact.Email.contains('.invalid'),
         'Email should contain .invalid'
       );

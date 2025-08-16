@@ -87,10 +87,34 @@ private class InvalidateEmailBatchTest {
 
     Test.stopTest();
 
-    // This test verifies the method runs without error
-    // The actual functionality depends on the custom metadata records
-    // which may not exist in the test context
-    System.assert(true, 'Method should execute without error');
+    // We need the default Contact_Email custom metadata type for a meaningful test, but it's possible
+    // that was deleted in real-life, so we fallback to a useless test.
+    Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
+    if (emailFields.containsKey('Contact_Email')) {
+      // Verify that Contact emails were invalidated
+      List<Contact> updatedContacts = [
+        SELECT Id, Email
+        FROM Contact
+        WHERE Email LIKE '%.invalid'
+      ];
+      Assert.areEqual(
+        contactCount,
+        updatedContacts.size(),
+        'All contact emails should be invalidated'
+      );
+
+      for (Contact contact : updatedContacts) {
+        Assert.isTrue(
+          contact.Email.contains('.invalid'),
+          'Email should contain .invalid'
+        );
+      }
+    } else {
+      Assert.isTrue(
+        true,
+        'This test is impossible to fail, if the the code ran successfully'
+      );
+    }
   }
 
   @isTest
