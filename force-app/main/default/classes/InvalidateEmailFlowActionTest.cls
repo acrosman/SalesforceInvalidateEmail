@@ -129,6 +129,31 @@ private class InvalidateEmailFlowActionTest {
   }
 
   @isTest
+  static void testBlankDatabase() {
+    // Delete all the contacts from Setup
+    List<Contact> contacts = [SELECT Id FROM Contact];
+    delete contacts;
+
+    Test.startTest();
+
+    InvalidateEmailFlowAction.EmailInvalidationResponse response = InvalidateEmailFlowAction.executeEmailInvalidation();
+
+    Test.stopTest();
+
+    // Verify response
+    Assert.isInstanceOfType(
+      response,
+      InvalidateEmailFlowAction.EmailInvalidationResponse.class,
+      'Response is the wrong type? How?!?'
+    );
+    Assert.isTrue(response.success, 'Should be successful');
+    Assert.isTrue(
+      response.message.contains('started'),
+      'Should contain success message'
+    );
+  }
+
+  @isTest
   static void testEmailInvalidationResponseClass() {
     InvalidateEmailFlowAction.EmailInvalidationResponse response = new InvalidateEmailFlowAction.EmailInvalidationResponse();
 
