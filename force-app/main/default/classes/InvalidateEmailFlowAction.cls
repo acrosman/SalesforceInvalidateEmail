@@ -41,9 +41,11 @@ public with sharing class InvalidateEmailFlowAction {
       label='Success'
       description='Indicates if the batch job was started successfully'
     )
+    @AuraEnabled
     public Boolean success;
 
     @InvocableVariable(label='Message' description='Success or error message')
+    @AuraEnabled
     public String message;
   }
 }
