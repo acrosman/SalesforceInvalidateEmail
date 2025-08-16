@@ -45,3 +45,4 @@ $RECYCLE.BIN/
 **/venv/
 
 .vscode
+package-lock.json
