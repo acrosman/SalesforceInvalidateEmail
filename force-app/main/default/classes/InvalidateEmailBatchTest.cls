@@ -23,35 +23,6 @@ private class InvalidateEmailBatchTest {
   }
 
   @isTest
-  static void testBatchWithDefaultConstructor() {
-    Test.startTest();
-
-    InvalidateEmailBatch batch = new InvalidateEmailBatch();
-    Database.executeBatch(batch, 5);
-
-    Test.stopTest();
-
-    // Verify that Contact emails were invalidated
-    List<Contact> updatedContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email LIKE '%.invalid'
-    ];
-    System.assertEquals(
-      10,
-      updatedContacts.size(),
-      'All contact emails should be invalidated'
-    );
-
-    for (Contact contact : updatedContacts) {
-      System.assert(
-        contact.Email.contains('.invalid@'),
-        'Email should contain .invalid@'
-      );
-    }
-  }
-
-  @isTest
   static void testBatchWithSpecificObjectAndField() {
     Test.startTest();
 
@@ -59,7 +30,7 @@ private class InvalidateEmailBatchTest {
       'Contact',
       new Set<String>{ 'Email' }
     );
-    Database.executeBatch(batch, 5);
+    Database.executeBatch(batch, 25);
 
     Test.stopTest();
 
@@ -101,7 +72,7 @@ private class InvalidateEmailBatchTest {
       'Contact',
       new Set<String>{ 'Email' }
     );
-    Database.executeBatch(batch, 5);
+    Database.executeBatch(batch, 25);
 
     Test.stopTest();
 
@@ -139,7 +110,7 @@ private class InvalidateEmailBatchTest {
     Contact testContact = new Contact(
       FirstName = 'Test',
       LastName = 'LongEmail',
-      Email = 'a'.repeat(200) + '@example.com'
+      Email = 'a'.repeat(65) + '@example.com'
     );
     insert testContact;
 
@@ -149,7 +120,7 @@ private class InvalidateEmailBatchTest {
       'Contact',
       new Set<String>{ 'Email' }
     );
-    Database.executeBatch(batch, 5);
+    Database.executeBatch(batch, 25);
 
     Test.stopTest();
 

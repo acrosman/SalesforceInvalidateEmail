@@ -11,11 +11,6 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     this.fields = fields;
   }
 
-  // Default constructor that processes all configured email fields
-  public InvalidateEmailBatch() {
-    // This will be handled in start() method by processing metadata
-  }
-
   public Database.QueryLocator start(Database.BatchableContext context) {
     String query;
 
@@ -24,7 +19,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     String whereClause = ' WHERE Id!=\'\' AND (';
     for (String f : fields) {
       preppedFields = preppedFields + ',' + f;
-      whereClause = whereClause + ' ' + f + '=\'\' OR';
+      whereClause = whereClause + ' ' + f + '<>\'\' OR';
     }
     whereClause = whereClause + ' Id=\'\')';
 
@@ -43,6 +38,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     for (SObject record : scope) {
       for (String emailField : fields) {
         try {
+          System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
           if (String.isNotBlank(currentEmail)) {
             // Invalidate the email by appending .invalid
