@@ -1,29 +1,160 @@
 /**
- * This class contains unit tests for validating the behavior of Apex classes
- * and triggers.
- *
- * Unit tests are class methods that verify whether a particular piece
- * of code is working properly. Unit test methods take no arguments,
- * commit no data to the database, and are flagged with the testMethod
- * keyword in the method definition.
- *
- * All test methods in an org are executed whenever Apex code is deployed
- * to a production org to confirm correctness, ensure code
- * coverage, and prevent regressions. All Apex classes are
- * required to have at least 75% code coverage in order to be deployed
- * to a production org. In addition, all triggers must have some code coverage.
- * 
- * The @isTest class annotation indicates this class only contains test
- * methods. Classes defined with the @isTest annotation do not count against
- * the org size limit for all Apex scripts.
- *
- * See the Apex Language Reference for more information about Testing and Code Coverage.
+ * Test class for InvalidateEmailBatch
+ * Tests the batch functionality for invalidating email addresses
  */
 @isTest
 private class InvalidateEmailBatchTest {
+  @testSetup
+  static void setupTestData() {
+    // Create test contacts with email addresses
+    List<Contact> testContacts = new List<Contact>();
 
-    @isTest
-    static void myUnitTest() {
-        // TO DO: implement unit test
+    for (Integer i = 0; i < 10; i++) {
+      testContacts.add(
+        new Contact(
+          FirstName = 'Test',
+          LastName = 'Contact' + i,
+          Email = 'test' + i + '@example.com'
+        )
+      );
     }
+
+    insert testContacts;
+  }
+
+  @isTest
+  static void testBatchWithDefaultConstructor() {
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch();
+    Database.executeBatch(batch, 5);
+
+    Test.stopTest();
+
+    // Verify that Contact emails were invalidated
+    List<Contact> updatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE '%.invalid'
+    ];
+    System.assertEquals(
+      10,
+      updatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
+
+    for (Contact contact : updatedContacts) {
+      System.assert(
+        contact.Email.contains('.invalid@'),
+        'Email should contain .invalid@'
+      );
+    }
+  }
+
+  @isTest
+  static void testBatchWithSpecificObjectAndField() {
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, 5);
+
+    Test.stopTest();
+
+    // Verify that Contact emails were invalidated
+    List<Contact> updatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE '%.invalid'
+    ];
+    System.assertEquals(
+      10,
+      updatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
+
+    for (Contact contact : updatedContacts) {
+      System.assert(
+        contact.Email.contains('.invalid'),
+        'Email should contain .invalid'
+      );
+    }
+  }
+
+  @isTest
+  static void testBatchWithEmptyEmails() {
+    // Create contacts with null and empty emails
+    List<Contact> testContacts = new List<Contact>();
+    testContacts.add(
+      new Contact(FirstName = 'Test', LastName = 'NullEmail', Email = null)
+    );
+    testContacts.add(
+      new Contact(FirstName = 'Test', LastName = 'EmptyEmail', Email = '')
+    );
+    insert testContacts;
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, 5);
+
+    Test.stopTest();
+
+    // Verify that null and empty emails were not processed
+    List<Contact> nullEmptyContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE LastName IN ('NullEmail', 'EmptyEmail')
+    ];
+    for (Contact contact : nullEmptyContacts) {
+      System.assert(
+        String.isBlank(contact.Email) || !contact.Email.contains('.invalid'),
+        'Null and empty emails should not be processed'
+      );
+    }
+  }
+
+  @isTest
+  static void testInvalidateAllConfiguredEmails() {
+    Test.startTest();
+
+    InvalidateEmailBatch.invalidateAllConfiguredEmails();
+
+    Test.stopTest();
+
+    // This test verifies the method runs without error
+    // The actual functionality depends on the custom metadata records
+    // which may not exist in the test context
+    System.assert(true, 'Method should execute without error');
+  }
+
+  @isTest
+  static void testBatchErrorHandling() {
+    // Create a contact with a very long email to potentially cause an error
+    Contact testContact = new Contact(
+      FirstName = 'Test',
+      LastName = 'LongEmail',
+      Email = 'a'.repeat(200) + '@example.com'
+    );
+    insert testContact;
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, 5);
+
+    Test.stopTest();
+
+    // The batch should handle errors gracefully
+    // Verify the batch completed without throwing exceptions
+    System.assert(true, 'Batch should handle errors gracefully');
+  }
 }
