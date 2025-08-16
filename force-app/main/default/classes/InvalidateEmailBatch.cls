@@ -40,7 +40,10 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
-          if (String.isNotBlank(currentEmail)) {
+          if (
+            String.isNotBlank(currentEmail) &&
+            !currentEmail.endsWith('.invalid')
+          ) {
             // Invalidate the email by appending .invalid
             String invalidatedEmail = currentEmail + '.invalid';
 

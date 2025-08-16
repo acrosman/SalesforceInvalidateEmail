@@ -118,6 +118,34 @@ private class InvalidateEmailBatchTest {
   }
 
   @isTest
+  static void testBatchNoDoubleInvalid() {
+    // Create a contact with a very long email to potentially cause an error
+    Contact testContact = new Contact(
+      FirstName = 'Test',
+      LastName = 'LongEmail',
+      Email = 'a@example.com.invalid'
+    );
+    insert testContact;
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom (needed here)
+
+    Test.stopTest();
+
+    Integer doubleCount = [
+      SELECT COUNT()
+      FROM Contact
+      WHERE Email LIKE '%.invalid.invalid'
+    ];
+    Assert.isFalse(doubleCount > 0, 'We double invalidated an address');
+  }
+
+  @isTest
   static void testBatchErrorHandling() {
     // Create a contact with a very long email to potentially cause an error
     Contact testContact = new Contact(
@@ -140,5 +168,25 @@ private class InvalidateEmailBatchTest {
     // The batch should handle errors gracefully
     // Verify the batch completed without throwing exceptions
     System.assert(true, 'Batch should handle errors gracefully');
+  }
+
+  @isTest
+  static void testBatchNoRecords() {
+    // Delete all the contacts from Setup
+    List<Contact> contacts = [SELECT Id FROM Contact];
+    delete contacts;
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom (needed here)
+
+    Test.stopTest();
+
+    // The batch not have a problem with an empty result set.
+    Assert.IsTrue(true, 'Batch should handle errors gracefully');
   }
 }
