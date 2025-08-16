@@ -4,22 +4,11 @@
  */
 @isTest
 private class InvalidateEmailFlowActionTest {
+  private static Integer contactCount = 10;
+
   @testSetup
   static void setupTestData() {
-    // Create test contacts with email addresses
-    List<Contact> testContacts = new List<Contact>();
-
-    for (Integer i = 0; i < 5; i++) {
-      testContacts.add(
-        new Contact(
-          FirstName = 'Test',
-          LastName = 'Contact' + i,
-          Email = 'test' + i + '@example.com'
-        )
-      );
-    }
-
-    insert testContacts;
+    InvalidateEmailTestDataFactory.createTestContacts(contactCount);
   }
 
   @isTest
@@ -38,6 +27,25 @@ private class InvalidateEmailFlowActionTest {
       response.message.contains('started'),
       'Should contain success message'
     );
+
+    // Verify that Contact emails were invalidated
+    List<Contact> updatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE '%.invalid'
+    ];
+    System.assertEquals(
+      contactCount,
+      updatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
+
+    for (Contact contact : updatedContacts) {
+      System.assert(
+        contact.Email.contains('.invalid'),
+        'Email should contain .invalid'
+      );
+    }
   }
 
   @isTest
