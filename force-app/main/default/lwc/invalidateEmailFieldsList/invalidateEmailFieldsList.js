@@ -38,7 +38,13 @@ export default class InvalidateEmailFieldsList extends LightningElement {
   wiredInvalidateEmailFields({ error, data }) {
     this.isLoading = false;
     if (data) {
-      this.invalidateEmailFields = data;
+      // Convert map to list
+      const fieldList = [];
+      const recordNames = Object.getOwnPropertyNames(data);
+      for (let i = 0; i < recordNames.length; i++) {
+        fieldList.push(data[recordNames[i]]);
+      }
+      this.invalidateEmailFields = fieldList;
       this.error = undefined;
     } else if (error) {
       this.error = error.body?.message || 'Unknown error occurred';
