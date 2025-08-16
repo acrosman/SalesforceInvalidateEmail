@@ -3,7 +3,7 @@
  * Centralizes test data creation for consistent testing across all test classes
  */
 @isTest
-public class EmailInvalidatorTestDataFactory {
+public class InvalidateEmailTestDataFactory {
   /**
    * Creates test contacts with email addresses
    * @param count Number of contacts to create
