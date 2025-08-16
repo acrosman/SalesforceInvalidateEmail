@@ -1,11 +1,21 @@
 public with sharing class InvalidateEmailFlowAction {
+  @AuraEnabled
+  public static EmailInvalidationResponse invalidateAllConfiguredEmailsAura() {
+    return executeEmailInvalidation();
+  }
+
   @InvocableMethod(
     label='Invalidate All Configured Emails'
     description='Triggers batch jobs for all email fields configured in custom metadata. This is meant to be called once from a screen flow or LWC not in a bulk context.'
   )
-  public static List<EmailInvalidationResponse> invalidateAllConfiguredEmails() {
+  public static List<EmailInvalidationResponse> invalidateAllConfiguredEmailsAction() {
     List<EmailInvalidationResponse> responses = new List<EmailInvalidationResponse>();
+    responses.add(executeEmailInvalidation());
+    return responses;
+  }
 
+  @TestVisible
+  private static EmailInvalidationResponse executeEmailInvalidation() {
     EmailInvalidationResponse response = new EmailInvalidationResponse();
 
     try {
@@ -17,14 +27,12 @@ public with sharing class InvalidateEmailFlowAction {
       response.success = false;
       response.message = 'Error starting batch jobs: ' + e.getMessage();
       System.debug(
-        'Error in InvalidateEmailFlowAction.invalidateAllConfiguredEmails: ' +
+        'Error in InvalidateEmailFlowAction.executeEmailInvalidation: ' +
         e.getMessage()
       );
     }
 
-    responses.add(response);
-
-    return responses;
+    return response;
   }
 
   // Response class for both invocable methods

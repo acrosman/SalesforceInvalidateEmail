@@ -12,10 +12,10 @@ private class InvalidateEmailFlowActionTest {
   }
 
   @isTest
-  static void testInvalidateAllConfiguredEmails() {
+  static void testInvalidateAllConfiguredEmailsAction() {
     Test.startTest();
 
-    List<InvalidateEmailFlowAction.EmailInvalidationResponse> responses = InvalidateEmailFlowAction.invalidateAllConfiguredEmails();
+    List<InvalidateEmailFlowAction.EmailInvalidationResponse> responses = InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAction();
 
     Test.stopTest();
 
@@ -23,6 +23,86 @@ private class InvalidateEmailFlowActionTest {
     Assert.areEqual(1, responses.size(), 'Should return one response');
     InvalidateEmailFlowAction.EmailInvalidationResponse response = responses[0];
     Assert.areEqual(true, response.success, 'Should be successful');
+    Assert.isTrue(
+      response.message.contains('started'),
+      'Should contain success message'
+    );
+
+    // Verify that Contact emails were invalidated
+    List<Contact> updatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE '%.invalid'
+    ];
+    Assert.areEqual(
+      contactCount,
+      updatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
+
+    for (Contact contact : updatedContacts) {
+      Assert.isTrue(
+        contact.Email.contains('.invalid'),
+        'Email should contain .invalid'
+      );
+    }
+  }
+
+  @isTest
+  static void testInvalidateAllConfiguredEmailsAuraMethod() {
+    Test.startTest();
+
+    InvalidateEmailFlowAction.EmailInvalidationResponse response = InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura();
+
+    Test.stopTest();
+
+    // Verify response
+    Assert.isInstanceOfType(
+      response,
+      InvalidateEmailFlowAction.EmailInvalidationResponse.class,
+      'Response is the wrong type? How?!?'
+    );
+    Assert.isTrue(response.success, 'Should be successful');
+    Assert.isTrue(
+      response.message.contains('started'),
+      'Should contain success message'
+    );
+
+    // Verify that Contact emails were invalidated
+    List<Contact> updatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE '%.invalid'
+    ];
+    Assert.areEqual(
+      contactCount,
+      updatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
+
+    for (Contact contact : updatedContacts) {
+      Assert.isTrue(
+        contact.Email.contains('.invalid'),
+        'Email should contain .invalid'
+      );
+    }
+  }
+
+  @isTest
+  static void testInvalidateAllConfiguredEmailsHelper() {
+    Test.startTest();
+
+    InvalidateEmailFlowAction.EmailInvalidationResponse response = InvalidateEmailFlowAction.executeEmailInvalidation();
+
+    Test.stopTest();
+
+    // Verify response
+    Assert.isInstanceOfType(
+      response,
+      InvalidateEmailFlowAction.EmailInvalidationResponse.class,
+      'Response is the wrong type? How?!?'
+    );
+    Assert.isTrue(response.success, 'Should be successful');
     Assert.isTrue(
       response.message.contains('started'),
       'Should contain success message'
