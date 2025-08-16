@@ -1,29 +1,58 @@
 /**
- * This class contains unit tests for validating the behavior of Apex classes
- * and triggers.
- *
- * Unit tests are class methods that verify whether a particular piece
- * of code is working properly. Unit test methods take no arguments,
- * commit no data to the database, and are flagged with the testMethod
- * keyword in the method definition.
- *
- * All test methods in an org are executed whenever Apex code is deployed
- * to a production org to confirm correctness, ensure code
- * coverage, and prevent regressions. All Apex classes are
- * required to have at least 75% code coverage in order to be deployed
- * to a production org. In addition, all triggers must have some code coverage.
- * 
- * The @isTest class annotation indicates this class only contains test
- * methods. Classes defined with the @isTest annotation do not count against
- * the org size limit for all Apex scripts.
- *
- * See the Apex Language Reference for more information about Testing and Code Coverage.
+ * Test class for InvalidateEmailFlowAction
+ * Tests the invocable methods that trigger the email invalidation batch
  */
 @isTest
 private class InvalidateEmailFlowActionTest {
+  @testSetup
+  static void setupTestData() {
+    // Create test contacts with email addresses
+    List<Contact> testContacts = new List<Contact>();
 
-    @isTest
-    static void myUnitTest() {
-        // TO DO: implement unit test
+    for (Integer i = 0; i < 5; i++) {
+      testContacts.add(
+        new Contact(
+          FirstName = 'Test',
+          LastName = 'Contact' + i,
+          Email = 'test' + i + '@example.com'
+        )
+      );
     }
+
+    insert testContacts;
+  }
+
+  @isTest
+  static void testInvalidateAllConfiguredEmails() {
+    Test.startTest();
+
+    List<InvalidateEmailFlowAction.EmailInvalidationResponse> responses = InvalidateEmailFlowAction.invalidateAllConfiguredEmails();
+
+    Test.stopTest();
+
+    // Verify response
+    Assert.areEqual(1, responses.size(), 'Should return one response');
+    InvalidateEmailFlowAction.EmailInvalidationResponse response = responses[0];
+    Assert.areEqual(true, response.success, 'Should be successful');
+    Assert.isTrue(
+      response.message.contains('started'),
+      'Should contain success message'
+    );
+  }
+
+  @isTest
+  static void testEmailInvalidationResponseClass() {
+    InvalidateEmailFlowAction.EmailInvalidationResponse response = new InvalidateEmailFlowAction.EmailInvalidationResponse();
+
+    String testMessage = 'Hello World';
+    response.success = true;
+    response.message = testMessage;
+
+    Assert.isTrue(response.success, 'Success status setting failed.');
+    Assert.areEqual(
+      testMessage,
+      response.message,
+      'Response message setting failed'
+    );
+  }
 }
