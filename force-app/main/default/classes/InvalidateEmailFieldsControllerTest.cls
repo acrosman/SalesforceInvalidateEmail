@@ -25,4 +25,16 @@ private class InvalidateEmailFieldsControllerTest {
       Assert.isNotNull(field.Field_Name__c, 'Field_Name__c should not be null');
     }
   }
+
+  @IsTest
+  static void testGetCustomMetadataObjectPrefix() {
+    String expectedPrefix = Email_Invalidator_Fields__mdt.sobjecttype.getDescribe()
+      .getKeyPrefix();
+
+    System.assertEquals(
+      expectedPrefix,
+      InvalidateEmailFieldsController.getCustomMetadataObjectPrefix(),
+      'Prefix does not match expected value'
+    );
+  }
 }

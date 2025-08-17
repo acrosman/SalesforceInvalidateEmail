@@ -4,4 +4,10 @@ public with sharing class InvalidateEmailFieldsController {
     Map<String, Email_Invalidator_Fields__mdt> emailFieldsMap = Email_Invalidator_Fields__mdt.getAll();
     return emailFieldsMap;
   }
+
+  @AuraEnabled
+  public static string getCustomMetadataObjectPrefix() {
+    return Email_Invalidator_Fields__mdt.sobjecttype.getDescribe()
+      .getKeyPrefix();
+  }
 }
