@@ -12,6 +12,8 @@ You can add Custom Metadata records to list all email fields on any object, so a
 
 You can find the app in the app switcher by searching for `Invalidate Email`.
 
+![Screenshot of the app's main interface](docs/InvalidatorScreenShot.png)
+
 ## Permission Set
 
 Anyone you want to be able to use this process should be assigned the included Invalidate Emails permission set.
