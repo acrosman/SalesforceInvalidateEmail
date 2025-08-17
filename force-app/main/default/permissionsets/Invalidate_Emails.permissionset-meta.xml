@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities>
+        <application>Invalidate_Email_Addresses</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+    <classAccesses>
+        <apexClass>InvalidateEmailBatch</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>InvalidateEmailFieldsController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>InvalidateEmailFlowAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>InvalidateEmailSandboxPostCopy</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <customMetadataTypeAccesses>
+        <enabled>true</enabled>
+        <name>Email_Invalidator_Fields__mdt</name>
+    </customMetadataTypeAccesses>
+    <description>Provides access to the email invalidation tool.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Invalidate Emails</label>
+    <tabSettings>
+        <tab>Invalidate_Email_Addresses</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
