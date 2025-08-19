@@ -46,3 +46,6 @@ $RECYCLE.BIN/
 
 .vscode
 package-lock.json
+
+# No Profiles
+force-app/main/default/profiles
