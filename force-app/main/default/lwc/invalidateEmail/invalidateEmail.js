@@ -4,7 +4,7 @@ import invalidateAllConfiguredEmails from '@salesforce/apex/InvalidateEmailFlowA
 
 export default class InvalidateEmail extends LightningElement {
 
-  async handleClick() {
+  async startInvalidation() {
     // Call the AuraEnabled method to start the batch process
     try {
       let response = await invalidateAllConfiguredEmails();
@@ -40,5 +40,9 @@ export default class InvalidateEmail extends LightningElement {
         })
       );
     }
+  }
+
+  async startEmailScan() {
+
   }
 }

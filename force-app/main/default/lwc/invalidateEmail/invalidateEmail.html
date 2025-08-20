@@ -4,7 +4,9 @@
       <p class="slds-p-horizontal_small">
         Click the button to create a batch process to review and invalidate all email addresses in the org.
       </p>
-      <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses" onclick={handleClick}
+      <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses" onclick={startInvalidation}
+        class="slds-m-left_x-small" variant="brand"></lightning-button>
+      <lightning-button label="Auto Add Email Fields" title="Scan for email fields in the org." onclick={startEmailScan}
         class="slds-m-left_x-small"></lightning-button>
     </div>
   </lightning-card>
