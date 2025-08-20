@@ -33,4 +33,4 @@ When you create a sandbox there is a field that allows you to indicate classes y
 - Scan for Email Fields: It would be helpful to have a process that scans the org for email fields and adds custom metadata records for those fields to the system.
 - Un-Invalidate Fields: Adding `.invalid` is helpful. It would also be nice to easily remove it again under some conditions.
 
-Suggestions welcome. Please create a new [Issue](/acrosman/SalesforceInvalidateEmail/issues) and submit your ideas.
+Suggestions welcome. Please create a new [Issue](https://github.com/acrosman/SalesforceInvalidateEmail/issues) and submit your ideas.
