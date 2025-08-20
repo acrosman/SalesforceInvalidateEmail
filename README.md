@@ -4,6 +4,10 @@ A simple tool to invalidate all the email addresses in your Salesforce org. This
 
 Currently this tool consists of unpackaged metadata. At some point I'll work on getting it packaged, but this is still an early draft.
 
+## Installation
+
+Currently this project just uses loose metadata and is not packaged. To install it, you need to clone this repo, or download its content. Then using sf cli run: `sf project deploy start`
+
 ## Main App
 
 The project provides an Invalid Email App which shows a list of the fields that are setup to be invalided, and a Lightening Web Component to initiate the process of adding `.invalid` to the end of all values in that field.
@@ -28,3 +32,5 @@ When you create a sandbox there is a field that allows you to indicate classes y
 
 - Scan for Email Fields: It would be helpful to have a process that scans the org for email fields and adds custom metadata records for those fields to the system.
 - Un-Invalidate Fields: Adding `.invalid` is helpful. It would also be nice to easily remove it again under some conditions.
+
+Suggestions welcome. Please create a new [Issue](issues) and submit your ideas.
