@@ -43,14 +43,16 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
         ORDER BY QualifiedApiName
       ];
 
-      for (EntityDefinition entity : entities) {
-        allObjects.add(entity.QualifiedApiName);
-      }
+      // Filter objects to only include those valid for Custom Metadata
+      List<String> validObjects = filterValidCustomMetadataObjects(entities);
+      allObjects.addAll(validObjects);
 
       System.debug(
         'EmailFieldScannerBatch: Found ' +
+          entities.size() +
+          ' total objects, filtered to ' +
           allObjects.size() +
-          ' objects to scan'
+          ' valid objects for Custom Metadata'
       );
     } catch (Exception e) {
       errors.add('Error retrieving objects: ' + e.getMessage());
@@ -59,6 +61,73 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
 
     this.objectsToProcess = allObjects;
     return allObjects;
+  }
+
+  @TestVisible
+  private List<String> filterValidCustomMetadataObjects(
+    List<EntityDefinition> entities
+  ) {
+    List<String> validObjects = new List<String>();
+
+    // Get the list of valid object types for Custom Metadata Object__c field
+    // This is done by attempting to describe the picklist values
+    Set<String> validObjectNames = getValidCustomMetadataObjectNames();
+
+    for (EntityDefinition entity : entities) {
+      // Skip objects that are not valid for Custom Metadata
+      if (
+        validObjectNames.isEmpty() ||
+        validObjectNames.contains(entity.QualifiedApiName)
+      ) {
+        validObjects.add(entity.QualifiedApiName);
+      } else {
+        System.debug(
+          'Skipping object not valid for Custom Metadata: ' +
+          entity.QualifiedApiName
+        );
+      }
+    }
+
+    return validObjects;
+  }
+
+  @TestVisible
+  private Set<String> getValidCustomMetadataObjectNames() {
+    Set<String> validObjectNames = new Set<String>();
+
+    try {
+      // Get the Object__c field describe to find valid picklist values
+      Schema.DescribeFieldResult fieldDescribe = Email_Invalidator_Fields__mdt.Object__c.getDescribe();
+      List<Schema.PicklistEntry> picklistValues = fieldDescribe.getPicklistValues();
+
+      for (Schema.PicklistEntry entry : picklistValues) {
+        if (entry.isActive()) {
+          validObjectNames.add(entry.getValue());
+        }
+      }
+
+      System.debug(
+        'Found ' +
+          validObjectNames.size() +
+          ' valid object names for Custom Metadata'
+      );
+    } catch (Exception e) {
+      // If we can't get the picklist values, log the error but don't filter
+      // This allows the process to continue with all objects
+      errors.add(
+        'Warning: Could not retrieve valid Custom Metadata object names: ' +
+        e.getMessage()
+      );
+      System.debug(
+        'Warning: Could not retrieve valid Custom Metadata object names: ' +
+        e.getMessage()
+      );
+
+      // Return empty set to indicate no filtering should be applied
+      return new Set<String>();
+    }
+
+    return validObjectNames;
   }
 
   public void execute(Database.BatchableContext context, List<String> scope) {
@@ -172,12 +241,24 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
     // Create deployment container
     Metadata.DeployContainer deployContainer = new Metadata.DeployContainer();
 
+    // Track used metadata record names to ensure uniqueness
+    Set<String> usedMetadataNames = new Set<String>();
+
+    // Add existing metadata record names to the used names set
+    for (Email_Invalidator_Fields__mdt existing : existingFields.values()) {
+      usedMetadataNames.add(existing.DeveloperName);
+    }
+
     for (EmailFieldInfo emailField : newEmailFields) {
       // Create custom metadata record
       Metadata.CustomMetadata customMetadata = new Metadata.CustomMetadata();
-      customMetadata.fullName =
-        'Email_Invalidator_Fields.' +
-        generateMetadataRecordName(emailField.objectName, emailField.fieldName);
+      String uniqueRecordName = generateUniqueMetadataRecordName(
+        emailField.objectName,
+        emailField.fieldName,
+        usedMetadataNames
+      );
+
+      customMetadata.fullName = 'Email_Invalidator_Fields.' + uniqueRecordName;
       customMetadata.label =
         emailField.objectName +
         ' ' +
@@ -204,7 +285,9 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
         'Added to deployment: ' +
           emailField.objectName +
           '.' +
-          emailField.fieldName
+          emailField.fieldName +
+          ' with metadata name: ' +
+          uniqueRecordName
       );
     }
 
@@ -238,21 +321,112 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
     String objectName,
     String fieldName
   ) {
-    // Generate a valid metadata record name
-    String recordName =
+    return generateUniqueMetadataRecordName(
+      objectName,
+      fieldName,
+      new Set<String>()
+    );
+  }
+
+  @TestVisible
+  private String generateUniqueMetadataRecordName(
+    String objectName,
+    String fieldName,
+    Set<String> usedNames
+  ) {
+    // Generate a base metadata record name
+    String baseName =
       objectName.replace('__c', '') +
       '_' +
       fieldName.replace('__c', '');
 
     // Replace any invalid characters
-    recordName = recordName.replaceAll('[^a-zA-Z0-9_]', '_');
+    baseName = baseName.replaceAll('[^a-zA-Z0-9_]', '_');
 
     // Ensure it doesn't start with a number
-    if (recordName.substring(0, 1).isNumeric()) {
-      recordName = 'Field_' + recordName;
+    if (baseName.substring(0, 1).isNumeric()) {
+      baseName = 'Field_' + baseName;
     }
 
-    return recordName;
+    // Salesforce Custom Metadata record names have a maximum length of 40 characters
+    // If the name is too long, truncate it while preserving uniqueness
+    if (baseName.length() > 40) {
+      baseName = truncateMetadataName(objectName, fieldName, baseName);
+    }
+
+    // Ensure uniqueness by adding a counter if needed
+    String uniqueName = baseName;
+    Integer counter = 1;
+
+    while (usedNames.contains(uniqueName)) {
+      String suffix = '_' + counter;
+      // Ensure the name with suffix doesn't exceed 40 characters
+      if (baseName.length() + suffix.length() > 40) {
+        String truncatedBase = baseName.substring(0, 40 - suffix.length());
+        uniqueName = truncatedBase + suffix;
+      } else {
+        uniqueName = baseName + suffix;
+      }
+      counter++;
+    }
+
+    usedNames.add(uniqueName);
+    return uniqueName;
+  }
+
+  @TestVisible
+  private String truncateMetadataName(
+    String objectName,
+    String fieldName,
+    String baseName
+  ) {
+    // Try to preserve both object and field parts by truncating each proportionally
+    String objectPart = objectName.replace('__c', '');
+    String fieldPart = fieldName.replace('__c', '');
+
+    // Calculate available space (40 chars - 1 for underscore - potential 'Field_' prefix)
+    Integer maxLength = baseName.startsWith('Field_') ? 34 : 39; // 40 - 6 for 'Field_' or 40 - 1 for underscore
+    Integer availableLength = baseName.startsWith('Field_')
+      ? maxLength - 6
+      : maxLength;
+
+    // Split available length between object and field parts
+    Integer objectMaxLength = Math.min(
+      objectPart.length(),
+      availableLength / 2
+    );
+    Integer fieldMaxLength = availableLength - objectMaxLength - 1; // -1 for underscore
+
+    // Ensure minimum lengths
+    if (objectMaxLength < 3 && objectPart.length() >= 3) {
+      objectMaxLength = 3;
+      fieldMaxLength = availableLength - 4; // -3 for object, -1 for underscore
+    }
+    if (fieldMaxLength < 3 && fieldPart.length() >= 3) {
+      fieldMaxLength = 3;
+      objectMaxLength = availableLength - 4; // -3 for field, -1 for underscore
+    }
+
+    // Truncate parts
+    String truncatedObjectPart = objectPart.length() > objectMaxLength
+      ? objectPart.substring(0, objectMaxLength)
+      : objectPart;
+    String truncatedFieldPart = fieldPart.length() > fieldMaxLength
+      ? fieldPart.substring(0, fieldMaxLength)
+      : fieldPart;
+
+    String truncatedName = truncatedObjectPart + '_' + truncatedFieldPart;
+
+    // Add Field_ prefix if it was there originally
+    if (baseName.startsWith('Field_')) {
+      truncatedName = 'Field_' + truncatedName;
+      // If still too long after adding prefix, truncate further
+      if (truncatedName.length() > 40) {
+        truncatedName = truncatedName.substring(0, 40);
+      }
+    }
+
+    return truncatedName;
   }
 
   @TestVisible
