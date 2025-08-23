@@ -2,12 +2,17 @@
   <lightning-card title="Email Invalidation" icon-name="standard:account">
     <div class="slds-m-top_small slds-m-bottom_medium">
       <p class="slds-p-horizontal_small">
-        Click the button to create a batch process to review and invalidate all email addresses in the org.
+        Click the invalidate email button to create a batch process to review and invalidate all email addresses in the
+        org.
       </p>
       <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses" onclick={startInvalidation}
         class="slds-m-left_x-small" variant="brand"></lightning-button>
       <lightning-button label="Auto Add Email Fields" title="Scan for email fields in the org." onclick={startEmailScan}
         class="slds-m-left_x-small"></lightning-button>
+      <p class="slds-p-horizontal_small">
+        You can also run this process after a sandbox refresh. When creating your sandbox Salesforce asks for an Apex
+        class to run. Enter: InvalidateEmailSandboxPostCopy.
+      </p>
     </div>
   </lightning-card>
 </template>
