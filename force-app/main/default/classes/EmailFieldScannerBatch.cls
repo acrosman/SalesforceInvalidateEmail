@@ -39,7 +39,11 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
       List<EntityDefinition> entities = [
         SELECT QualifiedApiName, Label, IsCustomizable
         FROM EntityDefinition
-        WHERE IsQueryable = TRUE AND IsCustomizable = TRUE
+        WHERE
+          IsQueryable = TRUE
+          AND IsCustomizable = TRUE
+          AND IsDeprecatedAndHidden = FALSE
+        WITH SECURITY_ENFORCED
         ORDER BY QualifiedApiName
       ];
 
@@ -69,65 +73,12 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
   ) {
     List<String> validObjects = new List<String>();
 
-    // Get the list of valid object types for Custom Metadata Object__c field
-    // This is done by attempting to describe the picklist values
-    Set<String> validObjectNames = getValidCustomMetadataObjectNames();
-
     for (EntityDefinition entity : entities) {
       // Skip objects that are not valid for Custom Metadata
-      if (
-        validObjectNames.isEmpty() ||
-        validObjectNames.contains(entity.QualifiedApiName)
-      ) {
-        validObjects.add(entity.QualifiedApiName);
-      } else {
-        System.debug(
-          'Skipping object not valid for Custom Metadata: ' +
-          entity.QualifiedApiName
-        );
-      }
+      validObjects.add(entity.QualifiedApiName);
     }
 
     return validObjects;
-  }
-
-  @TestVisible
-  private Set<String> getValidCustomMetadataObjectNames() {
-    Set<String> validObjectNames = new Set<String>();
-
-    try {
-      // Get the Object__c field describe to find valid picklist values
-      Schema.DescribeFieldResult fieldDescribe = Email_Invalidator_Fields__mdt.Object__c.getDescribe();
-      List<Schema.PicklistEntry> picklistValues = fieldDescribe.getPicklistValues();
-
-      for (Schema.PicklistEntry entry : picklistValues) {
-        if (entry.isActive()) {
-          validObjectNames.add(entry.getValue());
-        }
-      }
-
-      System.debug(
-        'Found ' +
-          validObjectNames.size() +
-          ' valid object names for Custom Metadata'
-      );
-    } catch (Exception e) {
-      // If we can't get the picklist values, log the error but don't filter
-      // This allows the process to continue with all objects
-      errors.add(
-        'Warning: Could not retrieve valid Custom Metadata object names: ' +
-        e.getMessage()
-      );
-      System.debug(
-        'Warning: Could not retrieve valid Custom Metadata object names: ' +
-        e.getMessage()
-      );
-
-      // Return empty set to indicate no filtering should be applied
-      return new Set<String>();
-    }
-
-    return validObjectNames;
   }
 
   public void execute(Database.BatchableContext context, List<String> scope) {
