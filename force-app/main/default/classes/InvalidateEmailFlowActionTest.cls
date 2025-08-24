@@ -29,10 +29,11 @@ private class InvalidateEmailFlowActionTest {
     );
 
     // Verify that Contact emails were invalidated
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     List<Contact> updatedContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email LIKE '%.invalid'
+      WHERE Email LIKE :('%' + invalidationText)
     ];
     Assert.areEqual(
       contactCount,
@@ -42,8 +43,8 @@ private class InvalidateEmailFlowActionTest {
 
     for (Contact contact : updatedContacts) {
       Assert.isTrue(
-        contact.Email.contains('.invalid'),
-        'Email should contain .invalid'
+        contact.Email.contains(invalidationText),
+        'Email should contain ' + invalidationText
       );
     }
   }
@@ -69,10 +70,11 @@ private class InvalidateEmailFlowActionTest {
     );
 
     // Verify that Contact emails were invalidated
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     List<Contact> updatedContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email LIKE '%.invalid'
+      WHERE Email LIKE :('%' + invalidationText)
     ];
     Assert.areEqual(
       contactCount,
@@ -82,8 +84,8 @@ private class InvalidateEmailFlowActionTest {
 
     for (Contact contact : updatedContacts) {
       Assert.isTrue(
-        contact.Email.contains('.invalid'),
-        'Email should contain .invalid'
+        contact.Email.contains(invalidationText),
+        'Email should contain ' + invalidationText
       );
     }
   }
@@ -109,10 +111,11 @@ private class InvalidateEmailFlowActionTest {
     );
 
     // Verify that Contact emails were invalidated
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     List<Contact> updatedContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email LIKE '%.invalid'
+      WHERE Email LIKE :('%' + invalidationText)
     ];
     Assert.areEqual(
       contactCount,
@@ -122,8 +125,8 @@ private class InvalidateEmailFlowActionTest {
 
     for (Contact contact : updatedContacts) {
       Assert.isTrue(
-        contact.Email.contains('.invalid'),
-        'Email should contain .invalid'
+        contact.Email.contains(invalidationText),
+        'Email should contain ' + invalidationText
       );
     }
   }

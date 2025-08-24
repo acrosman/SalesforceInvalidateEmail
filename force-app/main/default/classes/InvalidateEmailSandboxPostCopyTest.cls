@@ -34,10 +34,11 @@ private class InvalidateEmailSandboxPostCopyTest {
     Test.stopTest();
 
     // Verify that Contact emails were invalidated
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     List<Contact> updatedContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email LIKE '%.invalid'
+      WHERE Email LIKE :('%' + invalidationText)
     ];
     System.assertEquals(
       contactCount,
@@ -47,8 +48,8 @@ private class InvalidateEmailSandboxPostCopyTest {
 
     for (Contact contact : updatedContacts) {
       System.assert(
-        contact.Email.contains('.invalid'),
-        'Email should contain .invalid'
+        contact.Email.contains(invalidationText),
+        'Email should contain ' + invalidationText
       );
     }
   }

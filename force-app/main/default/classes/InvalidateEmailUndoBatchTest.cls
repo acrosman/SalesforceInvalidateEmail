@@ -13,8 +13,9 @@ private class InvalidateEmailUndoBatchTest {
     );
 
     // Invalidate the emails first so we have something to restore
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     for (Contact contact : testContacts) {
-      contact.Email = contact.Email + '.invalid';
+      contact.Email = contact.Email + invalidationText;
     }
     update testContacts;
   }
@@ -32,10 +33,12 @@ private class InvalidateEmailUndoBatchTest {
     Test.stopTest();
 
     // Verify that Contact emails were restored
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String notLikePattern = '%' + invalidationText;
     List<Contact> restoredContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email != NULL AND Email != '' AND (NOT Email LIKE '%.invalid')
+      WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
     ];
     System.assertEquals(
       contactCount,
@@ -45,8 +48,8 @@ private class InvalidateEmailUndoBatchTest {
 
     for (Contact contact : restoredContacts) {
       System.assert(
-        !contact.Email.contains('.invalid'),
-        'Email should not contain .invalid'
+        !contact.Email.contains(invalidationText),
+        'Email should not contain ' + invalidationText
       );
     }
   }
@@ -100,10 +103,12 @@ private class InvalidateEmailUndoBatchTest {
     Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
     if (emailFields.containsKey('Contact_Email')) {
       // Verify that Contact emails were restored
+      String invalidationText = InvalidateEmailSettings.getInvalidationText();
+      String notLikePattern = '%' + invalidationText;
       List<Contact> restoredContacts = [
         SELECT Id, Email
         FROM Contact
-        WHERE Email != NULL AND Email != '' AND (NOT Email LIKE '%.invalid')
+        WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
       ];
       Assert.areEqual(
         contactCount,
@@ -113,8 +118,8 @@ private class InvalidateEmailUndoBatchTest {
 
       for (Contact contact : restoredContacts) {
         Assert.isTrue(
-          !contact.Email.contains('.invalid'),
-          'Email should not contain .invalid'
+          !contact.Email.contains(invalidationText),
+          'Email should not contain ' + invalidationText
         );
       }
     } else {
