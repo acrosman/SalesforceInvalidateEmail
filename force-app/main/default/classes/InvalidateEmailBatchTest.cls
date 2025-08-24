@@ -24,10 +24,11 @@ private class InvalidateEmailBatchTest {
     Test.stopTest();
 
     // Verify that Contact emails were invalidated
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     List<Contact> updatedContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email LIKE '%.invalid'
+      WHERE Email LIKE :('%' + invalidationText)
     ];
     System.assertEquals(
       contactCount,
@@ -37,8 +38,8 @@ private class InvalidateEmailBatchTest {
 
     for (Contact contact : updatedContacts) {
       System.assert(
-        contact.Email.contains('.invalid'),
-        'Email should contain .invalid'
+        contact.Email.contains(invalidationText),
+        'Email should contain ' + invalidationText
       );
     }
   }
@@ -71,9 +72,11 @@ private class InvalidateEmailBatchTest {
       FROM Contact
       WHERE LastName IN ('NullEmail', 'EmptyEmail')
     ];
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     for (Contact contact : nullEmptyContacts) {
       System.assert(
-        String.isBlank(contact.Email) || !contact.Email.contains('.invalid'),
+        String.isBlank(contact.Email) ||
+        !contact.Email.contains(invalidationText),
         'Null and empty emails should not be processed'
       );
     }
@@ -92,10 +95,11 @@ private class InvalidateEmailBatchTest {
     Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
     if (emailFields.containsKey('Contact_Email')) {
       // Verify that Contact emails were invalidated
+      String invalidationText = InvalidateEmailSettings.getInvalidationText();
       List<Contact> updatedContacts = [
         SELECT Id, Email
         FROM Contact
-        WHERE Email LIKE '%.invalid'
+        WHERE Email LIKE :('%' + invalidationText)
       ];
       Assert.areEqual(
         contactCount,
@@ -105,8 +109,8 @@ private class InvalidateEmailBatchTest {
 
       for (Contact contact : updatedContacts) {
         Assert.isTrue(
-          contact.Email.contains('.invalid'),
-          'Email should contain .invalid'
+          contact.Email.contains(invalidationText),
+          'Email should contain ' + invalidationText
         );
       }
     } else {
@@ -120,10 +124,11 @@ private class InvalidateEmailBatchTest {
   @isTest
   static void testBatchNoDoubleInvalid() {
     // Create a contact with a very long email to potentially cause an error
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     Contact testContact = new Contact(
       FirstName = 'Test',
       LastName = 'LongEmail',
-      Email = 'a@example.com.invalid'
+      Email = 'a@example.com' + invalidationText
     );
     insert testContact;
 
@@ -137,10 +142,11 @@ private class InvalidateEmailBatchTest {
 
     Test.stopTest();
 
+    String doubleInvalidPattern = '%' + invalidationText + invalidationText;
     Integer doubleCount = [
       SELECT COUNT()
       FROM Contact
-      WHERE Email LIKE '%.invalid.invalid'
+      WHERE Email LIKE :doubleInvalidPattern
     ];
     Assert.isFalse(doubleCount > 0, 'We double invalidated an address');
   }

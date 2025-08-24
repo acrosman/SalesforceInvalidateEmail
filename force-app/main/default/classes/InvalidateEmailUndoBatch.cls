@@ -16,10 +16,17 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
 
     // Create a comma spliced string of fields.
     String preppedFields = 'Id';
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     String whereClause = ' WHERE Id!=\'\' AND (';
     for (String f : fields) {
       preppedFields = preppedFields + ',' + f;
-      whereClause = whereClause + ' ' + f + ' LIKE \'%.invalid\' OR';
+      whereClause =
+        whereClause +
+        ' ' +
+        f +
+        ' LIKE \'%' +
+        invalidationText +
+        '\' OR';
     }
     whereClause = whereClause + ' Id=\'\')';
 
@@ -40,11 +47,13 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
+          String invalidationText = InvalidateEmailSettings.getInvalidationText();
           if (
-            String.isNotBlank(currentEmail) && currentEmail.endsWith('.invalid')
+            String.isNotBlank(currentEmail) &&
+            currentEmail.endsWith(invalidationText)
           ) {
-            // Restore the email by removing .invalid suffix
-            String restoredEmail = currentEmail.removeEnd('.invalid');
+            // Restore the email by removing the configured invalidation text suffix
+            String restoredEmail = currentEmail.removeEnd(invalidationText);
 
             record.put(emailField, restoredEmail);
             recordsToUpdate.add(record);

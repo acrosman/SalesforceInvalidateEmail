@@ -40,12 +40,13 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
+          String invalidationText = InvalidateEmailSettings.getInvalidationText();
           if (
             String.isNotBlank(currentEmail) &&
-            !currentEmail.endsWith('.invalid')
+            !currentEmail.endsWith(invalidationText)
           ) {
-            // Invalidate the email by appending .invalid
-            String invalidatedEmail = currentEmail + '.invalid';
+            // Invalidate the email by appending the configured invalidation text
+            String invalidatedEmail = currentEmail + invalidationText;
 
             record.put(emailField, invalidatedEmail);
             recordsToUpdate.add(record);
