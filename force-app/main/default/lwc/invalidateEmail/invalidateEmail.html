@@ -2,10 +2,14 @@
   <lightning-card title="Email Invalidation" icon-name="standard:account">
     <div class="slds-m-top_small slds-m-bottom_medium">
       <p class="slds-p-horizontal_small">
-        Click the button to create a batch process to review and invalidate all email addresses in the org.
+        Click the buttons to create batch processes to invalidate or restore email addresses in the org.
       </p>
-      <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses" onclick={handleClick}
-        class="slds-m-left_x-small"></lightning-button>
+      <div class="slds-p-horizontal_small">
+        <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses"
+          onclick={handleInvalidateClick} class="slds-m-right_small" variant="destructive"></lightning-button>
+        <lightning-button label="Restore Emails" title="Remove .invalid from Email Addresses"
+          onclick={handleRestoreClick} class="slds-m-left_small" variant="success"></lightning-button>
+      </div>
     </div>
   </lightning-card>
 </template>

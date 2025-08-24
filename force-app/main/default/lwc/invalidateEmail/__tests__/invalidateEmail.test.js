@@ -24,7 +24,7 @@ describe('c-invalidate-email', () => {
         jest.clearAllMocks();
     });
 
-    it('renders the component with button', () => {
+    it('renders the component with both buttons', () => {
         // Arrange
         const element = createElement('c-invalidate-email', {
             is: InvalidateEmail
@@ -38,12 +38,19 @@ describe('c-invalidate-email', () => {
         expect(card).not.toBeNull();
         expect(card.title).toBe('Email Invalidation');
 
-        const button = element.shadowRoot.querySelector('lightning-button');
-        expect(button).not.toBeNull();
-        expect(button.label).toBe('Invalidate Emails');
+        const buttons = element.shadowRoot.querySelectorAll('lightning-button');
+        expect(buttons).toHaveLength(2);
+
+        const invalidateButton = buttons[0];
+        expect(invalidateButton.label).toBe('Invalidate Emails');
+        expect(invalidateButton.variant).toBe('destructive');
+
+        const restoreButton = buttons[1];
+        expect(restoreButton.label).toBe('Restore Emails');
+        expect(restoreButton.variant).toBe('success');
     });
 
-    it('calls Apex method and shows success toast on button click', async () => {
+    it('calls Apex method and shows success toast on invalidate button click', async () => {
         // Arrange
         const mockResponse = {
             success: true,
@@ -57,14 +64,38 @@ describe('c-invalidate-email', () => {
         document.body.appendChild(element);
 
         // Act
-        const button = element.shadowRoot.querySelector('lightning-button');
-        button.click();
+        const buttons = element.shadowRoot.querySelectorAll('lightning-button');
+        const invalidateButton = buttons[0];
+        invalidateButton.click();
 
         // Wait for async operations
         await Promise.resolve();
 
         // Assert
         expect(invalidateAllConfiguredEmails).toHaveBeenCalledTimes(1);
+    });
 
+    it('executes restore button click without errors (placeholder functionality)', async () => {
+        // Arrange
+        const element = createElement('c-invalidate-email', {
+            is: InvalidateEmail
+        });
+        document.body.appendChild(element);
+
+        // Act
+        const buttons = element.shadowRoot.querySelectorAll('lightning-button');
+        const restoreButton = buttons[1];
+
+        // This should not throw an error
+        expect(() => {
+            restoreButton.click();
+        }).not.toThrow();
+
+        // Wait for async operations
+        await Promise.resolve();
+
+        // Assert that the button exists and is clickable
+        expect(restoreButton).not.toBeNull();
+        expect(restoreButton.label).toBe('Restore Emails');
     });
 });
