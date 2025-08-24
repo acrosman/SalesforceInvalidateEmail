@@ -98,6 +98,7 @@ public class EmailFieldMetadataDeployCallback implements Metadata.DeployCallback
             }
           }
 
+          System.debug(emailBody);
           email.setPlainTextBody(emailBody);
         }
 
