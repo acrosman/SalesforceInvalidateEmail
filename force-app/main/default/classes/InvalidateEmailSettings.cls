@@ -39,10 +39,9 @@ public without sharing class InvalidateEmailSettings {
   }
 
   /**
-   * Clears the cached invalidation text (useful for testing)
+   * Clears the cached invalidation text (useful for testing and after settings updates)
    */
-  @TestVisible
-  private static void clearCache() {
+  public static void clearCache() {
     invalidationText = null;
   }
 }

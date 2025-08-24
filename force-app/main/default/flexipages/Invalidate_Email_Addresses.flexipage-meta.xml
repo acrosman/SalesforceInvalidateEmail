@@ -7,6 +7,12 @@
                 <identifier>c_invalidateEmail</identifier>
             </componentInstance>
         </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>invalidateEmailSettings</componentName>
+                <identifier>c_invalidateEmailSettings</identifier>
+            </componentInstance>
+        </itemInstances>
         <name>column1</name>
         <type>Region</type>
     </flexiPageRegions>
