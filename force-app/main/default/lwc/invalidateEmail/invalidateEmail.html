@@ -2,10 +2,18 @@
   <lightning-card title="Email Invalidation" icon-name="standard:account">
     <div class="slds-m-top_small slds-m-bottom_medium">
       <p class="slds-p-horizontal_small">
-        Click the button to create a batch process to review and invalidate all email addresses in the org.
+        You can invalidate or restore email addresses using the buttons below. Either will start a batch process to
+        update all objects and fields listed in app setup data.
       </p>
-      <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses" onclick={handleClick}
-        class="slds-m-left_x-small"></lightning-button>
+      <div class="slds-p-horizontal_small slds-p-vertical_small slds-align_absolute-center">
+        <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses"
+          onclick={handleInvalidateClick} class="slds-m-right_small" variant="destructive"></lightning-button>
+        <lightning-button label="Restore Emails" title="Remove .invalid from Email Addresses"
+          onclick={handleRestoreClick} class="slds-m-left_small" variant="success"></lightning-button>
+      </div>
+      <p class="slds-p-horizontal_small">Depending on your org data volumes this may take some time. If email
+        deliverability is enabled you will get an
+        email when the process is complete. But having email enabled until the process completes is unadvisable.</p>
     </div>
   </lightning-card>
 </template>
