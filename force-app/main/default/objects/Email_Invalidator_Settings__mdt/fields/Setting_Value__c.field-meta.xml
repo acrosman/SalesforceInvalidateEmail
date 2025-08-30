@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Setting_Value__c</fullName>
+    <description>The value represented by this record. Combined with the record name (not label) this forms a key/value pair to use as the setting.</description>
+    <externalId>false</externalId>
+    <fieldManageability>SubscriberControlled</fieldManageability>
+    <inlineHelpText>Enter the setting value here. Settings names are used to determine the setting key.</inlineHelpText>
+    <label>Setting Value</label>
+    <length>255</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

@@ -1,4 +1,4 @@
-public without sharing class InvalidateEmailBatch implements Database.Batchable<SObject>, Database.Stateful {
+public without sharing class InvalidateEmailUndoBatch implements Database.Batchable<SObject>, Database.Stateful {
   private String objectName;
   private Set<String> fields;
   private Integer recordsProcessed = 0;
@@ -6,7 +6,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   private List<String> errors = new List<String>();
 
   // Constructor for processing a specific object and field
-  public InvalidateEmailBatch(String objectName, Set<String> fields) {
+  public InvalidateEmailUndoBatch(String objectName, Set<String> fields) {
     this.objectName = objectName;
     this.fields = fields;
   }
@@ -16,10 +16,17 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
 
     // Create a comma spliced string of fields.
     String preppedFields = 'Id';
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     String whereClause = ' WHERE Id!=\'\' AND (';
     for (String f : fields) {
       preppedFields = preppedFields + ',' + f;
-      whereClause = whereClause + ' ' + f + '<>\'\' OR';
+      whereClause =
+        whereClause +
+        ' ' +
+        f +
+        ' LIKE \'%' +
+        invalidationText +
+        '\' OR';
     }
     whereClause = whereClause + ' Id=\'\')';
 
@@ -28,7 +35,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
       query = 'SELECT ' + preppedFields + ' FROM ' + objectName + whereClause;
     }
 
-    System.debug('InvalidateEmailBatch query: ' + query);
+    System.debug('InvalidateEmailUndoBatch query: ' + query);
     return Database.getQueryLocator(query);
   }
 
@@ -43,12 +50,12 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
           String invalidationText = InvalidateEmailSettings.getInvalidationText();
           if (
             String.isNotBlank(currentEmail) &&
-            !currentEmail.endsWith(invalidationText)
+            currentEmail.endsWith(invalidationText)
           ) {
-            // Invalidate the email by appending the configured invalidation text
-            String invalidatedEmail = currentEmail + invalidationText;
+            // Restore the email by removing the configured invalidation text suffix
+            String restoredEmail = currentEmail.removeEnd(invalidationText);
 
-            record.put(emailField, invalidatedEmail);
+            record.put(emailField, restoredEmail);
             recordsToUpdate.add(record);
             recordsProcessed++;
           }
@@ -87,7 +94,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   }
 
   public void finish(Database.BatchableContext context) {
-    System.debug('InvalidateEmailBatch completed');
+    System.debug('InvalidateEmailUndoBatch completed');
     System.debug('Records processed: ' + recordsProcessed);
     System.debug('Records updated: ' + recordsUpdated);
 
@@ -115,9 +122,9 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
       try {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new List<String>{ job.CreatedBy.Email });
-        email.setSubject('Email Invalidation Batch Job Completed');
+        email.setSubject('Email Restoration Batch Job Completed');
 
-        String emailBody = 'The email invalidation batch job has completed.\n\n';
+        String emailBody = 'The email restoration batch job has completed.\n\n';
         emailBody += 'Job Status: ' + job.Status + '\n';
         emailBody += 'Total Job Items: ' + job.TotalJobItems + '\n';
         emailBody += 'Job Items Processed: ' + job.JobItemsProcessed + '\n';
@@ -142,7 +149,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   }
 
   // Static method to process all configured email fields from custom metadata
-  public static void invalidateAllConfiguredEmails() {
+  public static void restoreAllConfiguredEmails() {
     Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
     Map<String, Set<String>> objectFields = new Map<String, Set<String>>();
     Email_Invalidator_Fields__mdt currentField;
@@ -164,7 +171,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
 
     // Now create batches for each object
     for (String objectName : objectFields.keySet()) {
-      InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      InvalidateEmailUndoBatch batch = new InvalidateEmailUndoBatch(
         objectName,
         objectFields.get(objectName)
       );

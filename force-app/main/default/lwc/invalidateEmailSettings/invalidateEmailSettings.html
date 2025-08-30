@@ -1,0 +1,71 @@
+<template>
+  <lightning-card title="Email Invalidator Settings" icon-name="standard:settings">
+    <div class="slds-p-horizontal_medium">
+      <!-- Loading spinner -->
+      <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading settings..." size="medium"></lightning-spinner>
+      </template>
+
+      <!-- Settings form -->
+      <template if:false={isLoading}>
+        <div class="slds-form slds-form_stacked">
+          <template for:each={settings} for:item="setting">
+            <div key={setting.name} class="slds-form-element slds-m-bottom_medium">
+              <label class="slds-form-element__label" for={setting.name}>
+                <abbr class="slds-required" title="required">*</abbr>
+                {setting.label}
+              </label>
+              <div class="slds-form-element__control">
+                <lightning-input name={setting.name} data-setting={setting.name} value={setting.value}
+                  onchange={handleInputChange} required class={setting.isModified}></lightning-input>
+              </div>
+              <template if:true={setting.isModified}>
+                <div class="slds-form-element__help slds-text-color_success">
+                  <lightning-icon icon-name="utility:success" size="xx-small"
+                    class="slds-m-right_xx-small"></lightning-icon>
+                  Modified
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <!-- Status message -->
+        <template if:true={statusMessage}>
+          <div class="slds-m-top_medium slds-m-bottom_medium">
+            <div class="slds-notify slds-notify_alert slds-alert_info" role="alert">
+              <span class="slds-assistive-text">Info</span>
+              <lightning-icon icon-name="utility:info" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+              <h2>{statusMessage}</h2>
+            </div>
+          </div>
+        </template>
+
+        <!-- Action buttons -->
+        <div class="slds-m-top_large">
+          <lightning-button-group>
+            <lightning-button variant="brand" label="Save & Deploy" onclick={handleSave} disabled={saveButtonDisabled}
+              class="slds-m-right_x-small"></lightning-button>
+            <lightning-button variant="neutral" label="Reset" onclick={handleReset}
+              disabled={resetButtonDisabled}></lightning-button>
+          </lightning-button-group>
+        </div>
+
+        <!-- Saving spinner -->
+        <template if:true={isSaving}>
+          <div class="slds-m-top_medium">
+            <lightning-spinner alternative-text="Saving and deploying settings..." size="small"></lightning-spinner>
+          </div>
+        </template>
+      </template>
+    </div>
+
+    <!-- Footer with help text -->
+    <div slot="footer" class="slds-p-horizontal_medium">
+      <div class="slds-text-body_small slds-text-color_weak">
+        <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+        Changes will be deployed as custom metadata and may take a few moments to take effect.
+      </div>
+    </div>
+  </lightning-card>
+</template>
