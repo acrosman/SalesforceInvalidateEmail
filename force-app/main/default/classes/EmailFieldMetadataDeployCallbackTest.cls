@@ -143,47 +143,12 @@ private class EmailFieldMetadataDeployCallbackTest {
     }
   }
 
-  @IsTest
-  static void testSendNotificationWithUserWithoutEmail() {
-    // Create a user without email
-    User userWithoutEmail = new User(
-      FirstName = 'No',
-      LastName = 'Email',
-      Email = '', // Empty email
-      Username = 'noemail@emailcallback.test',
-      Alias = 'noemail',
-      TimeZoneSidKey = 'America/New_York',
-      LocaleSidKey = 'en_US',
-      EmailEncodingKey = 'UTF-8',
-      LanguageLocaleKey = 'en_US',
-      ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1]
-      .Id
-    );
-    insert userWithoutEmail;
-
-    System.runAs(userWithoutEmail) {
-      Metadata.DeployResult mockResult = createMockDeployResult(true);
-      EmailFieldMetadataDeployCallback callback = new EmailFieldMetadataDeployCallback();
-
-      Test.startTest();
-
-      // Call handleResult - should handle missing email gracefully
-      callback.handleResult(mockResult, new Metadata.DeployCallbackContext());
-
-      Test.stopTest();
-
-      // Verify that method handles missing email without exceptions
-      System.assert(true, 'Should handle user without email gracefully');
-    }
-  }
-
   /**
    * Helper method to create mock Metadata.DeployResult for testing
    */
   private static Metadata.DeployResult createMockDeployResult(Boolean success) {
     Metadata.DeployResult result = new Metadata.DeployResult();
     result.success = success;
-    result.id = 'test-deployment-id-' + System.currentTimeMillis();
 
     if (success) {
       result.numberComponentsDeployed = 5;

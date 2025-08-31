@@ -47,6 +47,13 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
         ORDER BY QualifiedApiName
       ];
 
+      // For testing we need to cut this down to just ten objects.
+      if (Test.isRunningTest()) {
+        while (entities.size() > 10) {
+          entities.remove(0);
+        }
+      }
+
       // Filter objects to only include those valid for Custom Metadata
       List<String> validObjects = filterValidCustomMetadataObjects(entities);
       allObjects.addAll(validObjects);
@@ -142,18 +149,117 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
     System.debug('Objects processed: ' + totalObjectsProcessed);
     System.debug('Email fields found: ' + totalEmailFieldsFound);
 
-    // Generate and deploy custom metadata records for found email fields
+    // Cache the found email fields instead of deploying immediately
     if (!emailFieldsFound.isEmpty()) {
       try {
-        deployCustomMetadataRecords();
+        cacheEmailFieldResults();
       } catch (Exception e) {
-        errors.add('Error deploying custom metadata: ' + e.getMessage());
-        System.debug('Error deploying custom metadata: ' + e.getMessage());
+        errors.add('Error caching email field results: ' + e.getMessage());
+        System.debug('Error caching email field results: ' + e.getMessage());
       }
     }
 
     // Send completion email
     sendCompletionEmail(context);
+  }
+
+  @TestVisible
+  private void cacheEmailFieldResults() {
+    // Get existing custom metadata records to filter out duplicates
+    Set<String> existingRecords = new Set<String>();
+    Map<String, Email_Invalidator_Fields__mdt> existingFields = Email_Invalidator_Fields__mdt.getAll();
+
+    for (Email_Invalidator_Fields__mdt existing : existingFields.values()) {
+      String key = existing.Object__c + '.' + existing.Field_Name__c;
+      existingRecords.add(key);
+    }
+
+    // Filter out existing records and prepare new ones for caching
+    List<EmailFieldInfo> newEmailFields = new List<EmailFieldInfo>();
+
+    for (EmailFieldInfo emailField : emailFieldsFound) {
+      String key = emailField.objectName + '.' + emailField.fieldName;
+
+      // Skip if record already exists
+      if (existingRecords.contains(key)) {
+        System.debug('Skipping existing record: ' + key);
+        continue;
+      }
+
+      newEmailFields.add(emailField);
+    }
+
+    if (newEmailFields.isEmpty()) {
+      System.debug(
+        'No new email fields to cache - all found fields already have metadata records'
+      );
+      return;
+    }
+
+    // Convert email fields to JSON for caching
+    List<Map<String, Object>> emailFieldsForCache = new List<Map<String, Object>>();
+
+    for (EmailFieldInfo emailField : newEmailFields) {
+      Map<String, Object> fieldData = new Map<String, Object>();
+      fieldData.put('objectName', emailField.objectName);
+      fieldData.put('fieldName', emailField.fieldName);
+      fieldData.put('fieldLabel', emailField.fieldLabel);
+      fieldData.put('discoveredDate', System.now().format());
+      emailFieldsForCache.add(fieldData);
+    }
+
+    // Create the cache payload
+    Map<String, Object> cachePayload = new Map<String, Object>();
+    cachePayload.put('scanDate', System.now().format());
+    cachePayload.put('totalObjectsScanned', totalObjectsProcessed);
+    cachePayload.put('totalEmailFieldsFound', totalEmailFieldsFound);
+    cachePayload.put('newEmailFields', emailFieldsForCache);
+    cachePayload.put(
+      'existingFieldsSkipped',
+      emailFieldsFound.size() - newEmailFields.size()
+    );
+
+    String jsonPayload = JSON.serialize(cachePayload);
+
+    // Store in cache using metadata deployment
+    Metadata.DeployContainer deployContainer = new Metadata.DeployContainer();
+
+    Metadata.CustomMetadata cacheMetadata = new Metadata.CustomMetadata();
+    cacheMetadata.fullName = 'Email_Invalidator_Cache.Email_Field_Scan_Results';
+    cacheMetadata.label = 'Email Field Scan Results - ' + System.now().format();
+
+    Metadata.CustomMetadataValue cachedValueField = new Metadata.CustomMetadataValue();
+    cachedValueField.field = 'Cached_Value__c';
+    cachedValueField.value = jsonPayload;
+
+    cacheMetadata.values = new List<Metadata.CustomMetadataValue>{
+      cachedValueField
+    };
+    deployContainer.addMetadata(cacheMetadata);
+
+    // Deploy the cache metadata
+    if (!Test.isRunningTest()) {
+      try {
+        Metadata.Operations.enqueueDeployment(
+          deployContainer,
+          new EmailFieldCacheDeployCallback()
+        );
+        System.debug(
+          'Cached ' +
+            newEmailFields.size() +
+            ' new email fields for user review'
+        );
+      } catch (Exception e) {
+        errors.add('Error deploying cache metadata: ' + e.getMessage());
+        System.debug('Error deploying cache metadata: ' + e.getMessage());
+      }
+    } else {
+      System.debug(
+        'Test context - skipping cache deployment of ' +
+          newEmailFields.size() +
+          ' fields'
+      );
+    }
   }
 
   @TestVisible

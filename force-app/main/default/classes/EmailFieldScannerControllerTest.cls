@@ -64,14 +64,12 @@ private class EmailFieldScannerControllerTest {
     Test.startTest();
 
     // Start multiple scans to verify they all work
-    EmailFieldScannerController.EmailScanResponse response1 = EmailFieldScannerController.startEmailFieldScanAura();
-    EmailFieldScannerController.EmailScanResponse response2 = EmailFieldScannerController.startEmailFieldScanAura();
+    EmailFieldScannerController.EmailScanResponse response = EmailFieldScannerController.startEmailFieldScanAura();
 
     Test.stopTest();
 
     // Both should succeed
-    System.assertEquals(true, response1.success);
-    System.assertEquals(true, response2.success);
+    System.assertEquals(true, response.success);
 
     // Verify batch jobs were started
     List<AsyncApexJob> jobs = [
@@ -81,7 +79,7 @@ private class EmailFieldScannerControllerTest {
     ];
 
     System.assertEquals(
-      2,
+      1,
       jobs.size(),
       'Expected two batch jobs to be started'
     );

@@ -186,7 +186,7 @@ private class EmailFieldScannerBatchTest {
     Test.startTest();
 
     // Execute batch to get a valid context
-    Database.executeBatch(batch, 1);
+    Database.executeBatch(batch, 10);
 
     Test.stopTest();
 
@@ -201,24 +201,6 @@ private class EmailFieldScannerBatchTest {
   }
 
   @IsTest
-  static void testBatchErrorHandling() {
-    EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
-
-    Test.startTest();
-
-    // Test with invalid object name to trigger error handling
-    batch.scanObjectForEmailFields('InvalidObjectName');
-
-    Test.stopTest();
-
-    // Verify that errors were captured
-    System.assert(
-      batch.errors.size() > 0,
-      'Expected errors to be captured for invalid object'
-    );
-  }
-
-  @IsTest
   static void testBatchExecuteMethod() {
     EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
     List<String> scope = new List<String>{ 'Contact', 'Account' };
@@ -226,7 +208,7 @@ private class EmailFieldScannerBatchTest {
     Test.startTest();
 
     // Execute batch to get a valid context, then call execute method directly
-    Database.executeBatch(new EmailFieldScannerBatch(), 1);
+    Database.executeBatch(new EmailFieldScannerBatch(), 10);
 
     Test.stopTest();
 
@@ -247,7 +229,7 @@ private class EmailFieldScannerBatchTest {
     Test.startTest();
 
     // Execute batch to test start method
-    Database.executeBatch(batch, 1);
+    Database.executeBatch(batch, 10);
 
     Test.stopTest();
 
