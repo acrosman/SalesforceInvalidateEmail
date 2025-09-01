@@ -13,3 +13,6 @@ package.xml
 
 # No Profiles
 force-app/main/default/profiles
+
+# No Cached field scans
+force-app/main/default/customMetadata/Email_Invalidator_Cache*
