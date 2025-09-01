@@ -220,13 +220,14 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
     );
 
     String jsonPayload = JSON.serialize(cachePayload);
+    System.debug('Caching Payload: ' + jsonPayload);
 
     // Store in cache using metadata deployment
     Metadata.DeployContainer deployContainer = new Metadata.DeployContainer();
 
     Metadata.CustomMetadata cacheMetadata = new Metadata.CustomMetadata();
-    cacheMetadata.fullName = 'Email_Invalidator_Cache.Email_Field_Scan_Results';
-    cacheMetadata.label = 'Email Field Scan Results - ' + System.now().format();
+    cacheMetadata.fullName = 'Email_Invalidator_Cache.Field_Scan';
+    cacheMetadata.label = 'Email Field Scan';
 
     Metadata.CustomMetadataValue cachedValueField = new Metadata.CustomMetadataValue();
     cachedValueField.field = 'Cached_Value__c';
