@@ -1,0 +1,86 @@
+<template>
+  <lightning-card title="Email Field Scanner Results" icon-name="standard:scan">
+    <div class="slds-p-horizontal_medium">
+      <!-- Loading Spinner -->
+      <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading scan results..."></lightning-spinner>
+      </template>
+
+      <!-- Error Message -->
+      <template if:true={error}>
+        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+          <span class="slds-assistive-text">Error</span>
+          <h2>Error loading scan results: {error}</h2>
+        </div>
+      </template>
+
+      <!-- Status Section -->
+      <template if:true={scanData}>
+        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+          <h3 class="slds-text-heading_small slds-m-bottom_small">Scan Status</h3>
+          <div class="slds-grid slds-wrap slds-gutters">
+            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+              <div class="slds-form-element">
+                <label class="slds-form-element__label">Last Scan Result Date</label>
+                <div class="slds-form-element__control">
+                  <span class="slds-form-element__static">{lastModifiedDate}</span>
+                </div>
+              </div>
+            </div>
+            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+              <div class="slds-form-element">
+                <label class="slds-form-element__label">Total Objects Scanned</label>
+                <div class="slds-form-element__control">
+                  <span class="slds-form-element__static">{totalObjectsScanned}</span>
+                </div>
+              </div>
+            </div>
+            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+              <div class="slds-form-element">
+                <label class="slds-form-element__label">Total Email Fields Found</label>
+                <div class="slds-form-element__control">
+                  <span class="slds-form-element__static">{totalEmailFieldsFound}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email Fields Table -->
+        <template if:true={hasEmailFields}>
+          <div class="slds-m-bottom_medium">
+            <h3 class="slds-text-heading_small slds-m-bottom_small">New Email Fields Found</h3>
+            <lightning-datatable key-field="uniqueKey" data={emailFieldsData} columns={columns}
+              onrowselection={handleRowSelection} selected-rows={selectedRows} hide-checkbox-column="false">
+            </lightning-datatable>
+          </div>
+
+          <!-- Action Button -->
+          <div class="slds-text-align_center slds-m-top_medium">
+            <lightning-button variant="brand" label="Include Selected Fields" onclick={handleIncludeSelectedFields}
+              disabled={isProcessing}>
+            </lightning-button>
+          </div>
+        </template>
+
+        <!-- No Email Fields Message -->
+        <template if:false={hasEmailFields}>
+          <div class="slds-text-align_center slds-m-vertical_large">
+            <p class="slds-text-body_regular">No new email fields found in the last scan.</p>
+          </div>
+        </template>
+      </template>
+
+      <!-- No Scan Data Message -->
+      <template if:false={scanData}>
+        <template if:false={isLoading}>
+          <template if:false={error}>
+            <div class="slds-text-align_center slds-m-vertical_large">
+              <p class="slds-text-body_regular">No scan data available. Please run a field scan first.</p>
+            </div>
+          </template>
+        </template>
+      </template>
+    </div>
+  </lightning-card>
+</template>
