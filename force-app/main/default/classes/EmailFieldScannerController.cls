@@ -35,9 +35,12 @@ public with sharing class EmailFieldScannerController {
 
     try {
       // Get the specific cached scan results record directly
-      Email_Invalidator_Cache__mdt cacheRecord = Email_Invalidator_Cache__mdt.getInstance(
-        'Field_Scan'
-      );
+
+      Email_Invalidator_Cache__mdt cacheRecord = [
+        SELECT QualifiedApiName, Cached_Value__c, SystemModstamp
+        FROM Email_Invalidator_Cache__mdt
+        WHERE DeveloperName = 'Field_Scan'
+      ];
 
       if (
         cacheRecord != null && String.isNotBlank(cacheRecord.Cached_Value__c)
