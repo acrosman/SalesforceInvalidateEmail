@@ -2,6 +2,7 @@ import { LightningElement } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import invalidateAllConfiguredEmails from '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura';
 import restoreAllConfiguredEmails from '@salesforce/apex/InvalidateEmailUndoFlowAction.restoreAllConfiguredEmailsAura';
+import startEmailFieldScanAura from '@salesforce/apex/EmailFieldScannerController.startEmailFieldScanAura';
 
 export default class InvalidateEmail extends LightningElement {
 
@@ -81,7 +82,7 @@ export default class InvalidateEmail extends LightningElement {
     }
   }
 
-  async startEmailScan() {
+  async handleEmailScanClick() {
     // Call the AuraEnabled method to start the email field scanning batch process
     try {
       let response = await startEmailFieldScanAura();

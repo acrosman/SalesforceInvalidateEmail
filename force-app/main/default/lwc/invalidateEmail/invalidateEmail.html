@@ -9,11 +9,18 @@
         <lightning-button label="Invalidate Emails" title="Invalidate All Email Addresses"
           onclick={handleInvalidateClick} class="slds-m-right_small" variant="destructive"></lightning-button>
         <lightning-button label="Restore Emails" title="Remove .invalid from Email Addresses"
-          onclick={handleRestoreClick} class="slds-m-left_small" variant="success"></lightning-button>
+          onclick={handleRestoreClick} class="slds-m-horizontal_small" variant="success"></lightning-button>
       </div>
       <p class="slds-p-horizontal_small">Depending on your org data volumes this may take some time. If email
         deliverability is enabled you will get an
         email when the process is complete. But having email enabled until the process completes is unadvisable.</p>
+      <p class="slds-p-horizontal_small">You can also scan for email fields in the org you might like to add to this
+        process.</p>
+      <div class="slds-p-horizontal_small slds-p-vertical_small slds-align_absolute-center">
+        <lightning-button label="Scan For Email Fields" title="Scan for New Email Fields" onclick={handleEmailScanClick}
+          class="slds-m-left_small" variant="brand"></lightning-button>
+      </div>
+
     </div>
   </lightning-card>
 </template>
