@@ -49,9 +49,10 @@
         <!-- Email Fields Table -->
         <template if:true={hasEmailFields}>
           <div class="slds-m-bottom_medium">
-            <h3 class="slds-text-heading_small slds-m-bottom_small">New Email Fields Found</h3>
+            <h3 class="slds-text-heading_small slds-m-bottom_small">Email Fields Not Currently Processed</h3>
             <lightning-datatable key-field="uniqueKey" data={emailFieldsData} columns={columns}
-              onrowselection={handleRowSelection} selected-rows={selectedRows} hide-checkbox-column="false">
+              onrowselection={handleRowSelection} selected-rows={selectedRows} onsort={handleSort} sorted-by={sortedBy}
+              sorted-direction={sortedDirection}>
             </lightning-datatable>
           </div>
 

@@ -33,6 +33,10 @@ export default class EmailFieldScanner extends LightningElement {
   isLoading = true;
   isProcessing = false;
 
+  // Sorting properties
+  sortedBy = '';
+  sortedDirection = 'asc';
+
   // Status fields
   lastModifiedDate = '';
   totalObjectsScanned = 0;
@@ -89,6 +93,32 @@ export default class EmailFieldScanner extends LightningElement {
 
   handleRowSelection(event) {
     this.selectedRows = event.detail.selectedRows.map(row => row.uniqueKey);
+  }
+
+  handleSort(event) {
+    const { fieldName: sortedBy, sortDirection } = event.detail;
+    const cloneData = [...this.emailFieldsData];
+
+    cloneData.sort(this.sortBy(sortedBy, sortDirection === 'asc' ? 1 : -1));
+    this.emailFieldsData = cloneData;
+    this.sortedDirection = sortDirection;
+    this.sortedBy = sortedBy;
+  }
+
+  sortBy(field, reverse) {
+    const key = function (x) {
+      return x[field];
+    };
+
+    return function (a, b) {
+      a = key(a);
+      b = key(b);
+
+      if (a === null || a === undefined) a = '';
+      if (b === null || b === undefined) b = '';
+
+      return reverse * ((a > b) - (b > a));
+    };
   }
 
   async handleIncludeSelectedFields() {

@@ -78,6 +78,7 @@ public with sharing class EmailFieldScannerController {
           field.fieldLabel = (String) fieldData.get('fieldLabel');
           field.discoveredDate = (String) fieldData.get('discoveredDate');
           field.selected = false; // Default to not selected
+          field.uniqueKey = field.objectName + '.' + field.fieldName;
           response.newEmailFields.add(field);
         }
 
@@ -336,5 +337,8 @@ public with sharing class EmailFieldScannerController {
 
     @AuraEnabled
     public Boolean selected;
+
+    @AuraEnabled
+    public String uniqueKey;
   }
 }
