@@ -147,19 +147,25 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     Map<String, Set<String>> objectFields = new Map<String, Set<String>>();
     Email_Invalidator_Fields__mdt currentField;
     String currentFieldName;
+    String objectApiName;
+
     // Create a collection of email fields by object.
     for (String invalidatorKey : emailFields.keySet()) {
       currentField = emailFields.get(invalidatorKey);
+
+      // Convert Object__c value to API name (handle both standard objects and custom objects)
+      objectApiName = convertToObjectApiName(currentField.Object__c);
+
       // Ensure the current object is on the list.
-      if (!objectFields.containsKey(currentField.Object__c)) {
-        objectFields.put(currentField.Object__c, new Set<String>());
+      if (!objectFields.containsKey(objectApiName)) {
+        objectFields.put(objectApiName, new Set<String>());
       }
       // The field names are stored as [ObjectName].[FieldName] cause that's how SF handles such things in CMT.
       // But we only want the field name, so we need to extract the string after the dot.
       // No valid custom metadata record would have more than one dot in this context.
       currentFieldName = currentField.Field_Name__c;
       currentFieldName = currentFieldName.substringAfter('.');
-      objectFields.get(currentField.Object__c).add(currentFieldName);
+      objectFields.get(objectApiName).add(currentFieldName);
     }
 
     // Now create batches for each object
@@ -169,6 +175,39 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         objectFields.get(objectName)
       );
       Database.executeBatch(batch, 200);
+    }
+  }
+
+  // Helper method to convert Object__c value to API name
+  // Handles both standard objects (stored as name) and custom objects (stored as RecordType Id)
+  @TestVisible
+  private static String convertToObjectApiName(String objectValue) {
+    if (String.isBlank(objectValue)) {
+      return objectValue;
+    }
+
+    // Try to cast the string to an Id - if successful, it's a RecordType Id
+    try {
+      Id recordTypeId = (Id) objectValue;
+
+      // Query EntityDefinition to get the API name
+      EntityDefinition entityDef = [
+        SELECT QualifiedApiName
+        FROM EntityDefinition
+        WHERE Id = :recordTypeId
+        LIMIT 1
+      ];
+      return entityDef.QualifiedApiName;
+    } catch (Exception e) {
+      // Either not a valid Id or query failed, assume it's already an API name (standard object)
+      System.debug(
+        'Using object value as API name: ' +
+          objectValue +
+          ' (Error: ' +
+          e.getMessage() +
+          ')'
+      );
+      return objectValue;
     }
   }
 }

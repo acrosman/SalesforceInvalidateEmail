@@ -195,4 +195,54 @@ private class InvalidateEmailBatchTest {
     // The batch not have a problem with an empty result set.
     Assert.IsTrue(true, 'Batch should handle errors gracefully');
   }
+
+  @isTest
+  static void testConvertToObjectApiName() {
+    Test.startTest();
+
+    // Test with standard object name (should return as-is)
+    String standardObjectResult = InvalidateEmailBatch.convertToObjectApiName(
+      'Contact'
+    );
+    Assert.areEqual(
+      'Contact',
+      standardObjectResult,
+      'Standard object name should be returned as-is'
+    );
+
+    // Test with blank/null values
+    String blankResult = InvalidateEmailBatch.convertToObjectApiName('');
+    Assert.areEqual('', blankResult, 'Blank value should be returned as-is');
+
+    String nullResult = InvalidateEmailBatch.convertToObjectApiName(null);
+    Assert.areEqual(null, nullResult, 'Null value should be returned as-is');
+
+    // Test with a valid EntityDefinition Id (using Contact's EntityDefinition Id)
+    EntityDefinition contactEntity = [
+      SELECT Id, QualifiedApiName
+      FROM EntityDefinition
+      WHERE QualifiedApiName = 'Contact'
+      LIMIT 1
+    ];
+    String entityIdResult = InvalidateEmailBatch.convertToObjectApiName(
+      contactEntity.Id
+    );
+    Assert.areEqual(
+      'Contact',
+      entityIdResult,
+      'EntityDefinition Id should be converted to API name'
+    );
+
+    // Test with invalid Id format (should return as-is)
+    String invalidIdResult = InvalidateEmailBatch.convertToObjectApiName(
+      'InvalidId123'
+    );
+    Assert.areEqual(
+      'InvalidId123',
+      invalidIdResult,
+      'Invalid Id should be returned as-is'
+    );
+
+    Test.stopTest();
+  }
 }
