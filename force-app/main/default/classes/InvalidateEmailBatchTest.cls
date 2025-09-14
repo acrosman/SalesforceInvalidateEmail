@@ -197,52 +197,117 @@ private class InvalidateEmailBatchTest {
   }
 
   @isTest
-  static void testConvertToObjectApiName() {
+  static void testGetFieldDetails() {
     Test.startTest();
 
-    // Test with standard object name (should return as-is)
-    String standardObjectResult = InvalidateEmailBatch.convertToObjectApiName(
-      'Contact'
-    );
-    Assert.areEqual(
-      'Contact',
-      standardObjectResult,
-      'Standard object name should be returned as-is'
-    );
+    // Create test metadata map similar to what would come from Email_Invalidator_Fields__mdt.getAll()
+    Map<String, Email_Invalidator_Fields__mdt> testMetadata = new Map<String, Email_Invalidator_Fields__mdt>();
 
-    // Test with blank/null values
-    String blankResult = InvalidateEmailBatch.convertToObjectApiName('');
-    Assert.areEqual('', blankResult, 'Blank value should be returned as-is');
-
-    String nullResult = InvalidateEmailBatch.convertToObjectApiName(null);
-    Assert.areEqual(null, nullResult, 'Null value should be returned as-is');
-
-    // Test with a valid EntityDefinition Id (using Contact's EntityDefinition Id)
-    EntityDefinition contactEntity = [
-      SELECT Id, QualifiedApiName
-      FROM EntityDefinition
-      WHERE QualifiedApiName = 'Contact'
+    // Get the actual DurableId for Contact.Email field to use in test
+    EntityParticle contactEmailField = [
+      SELECT DurableId, QualifiedApiName, EntityDefinition.QualifiedApiName
+      FROM EntityParticle
+      WHERE
+        EntityDefinition.QualifiedApiName = 'Contact'
+        AND QualifiedApiName = 'Email'
       LIMIT 1
     ];
-    String entityIdResult = InvalidateEmailBatch.convertToObjectApiName(
-      contactEntity.Id
-    );
-    Assert.areEqual(
-      'Contact',
-      entityIdResult,
-      'EntityDefinition Id should be converted to API name'
-    );
 
-    // Test with invalid Id format (should return as-is)
-    String invalidIdResult = InvalidateEmailBatch.convertToObjectApiName(
-      'InvalidId123'
-    );
-    Assert.areEqual(
-      'InvalidId123',
-      invalidIdResult,
-      'Invalid Id should be returned as-is'
+    // Create a mock metadata record
+    Email_Invalidator_Fields__mdt mockField = new Email_Invalidator_Fields__mdt();
+    mockField.Field_Name__c = contactEmailField.DurableId;
+    testMetadata.put('Contact_Email', mockField);
+
+    // Test the getFieldDetails method
+    Map<String, Set<String>> result = InvalidateEmailBatch.getFieldDetails(
+      testMetadata
     );
 
     Test.stopTest();
+
+    // Verify the results
+    Assert.isTrue(
+      result.containsKey('Contact'),
+      'Result should contain Contact object'
+    );
+    Assert.isTrue(
+      result.get('Contact').contains('Email'),
+      'Contact should have Email field'
+    );
+    Assert.areEqual(
+      1,
+      result.get('Contact').size(),
+      'Contact should have exactly one field'
+    );
+  }
+
+  @isTest
+  static void testGetFieldDetailsWithMultipleFields() {
+    Test.startTest();
+
+    // Create test metadata map with multiple fields
+    Map<String, Email_Invalidator_Fields__mdt> testMetadata = new Map<String, Email_Invalidator_Fields__mdt>();
+
+    // Get DurableIds for multiple Contact fields
+    List<EntityParticle> contactFields = [
+      SELECT DurableId, DeveloperName, EntityDefinition.DeveloperName
+      FROM EntityParticle
+      WHERE
+        EntityDefinition.DeveloperName = 'Contact'
+        AND DeveloperName IN ('Email', 'AssistantEmail')
+      ORDER BY DeveloperName
+    ];
+
+    Integer fieldIndex = 0;
+    for (EntityParticle field : contactFields) {
+      Email_Invalidator_Fields__mdt mockField = new Email_Invalidator_Fields__mdt();
+      mockField.Field_Name__c = field.DurableId;
+      testMetadata.put('Contact_Field_' + fieldIndex, mockField);
+      fieldIndex++;
+    }
+
+    // Test the getFieldDetails method
+    Map<String, Set<String>> result = InvalidateEmailBatch.getFieldDetails(
+      testMetadata
+    );
+
+    Test.stopTest();
+
+    // Verify the results
+    Assert.isTrue(
+      result.containsKey('Contact'),
+      'Result should contain Contact object'
+    );
+    Assert.areEqual(
+      contactFields.size(),
+      result.get('Contact').size(),
+      'Contact should have the correct number of fields'
+    );
+
+    for (EntityParticle field : contactFields) {
+      Assert.isTrue(
+        result.get('Contact').contains(field.DeveloperName),
+        'Contact should contain field: ' + field.DeveloperName
+      );
+    }
+  }
+
+  @isTest
+  static void testGetFieldDetailsWithEmptyInput() {
+    Test.startTest();
+
+    // Test with empty metadata map
+    Map<String, Email_Invalidator_Fields__mdt> emptyMetadata = new Map<String, Email_Invalidator_Fields__mdt>();
+    Map<String, Set<String>> result = InvalidateEmailBatch.getFieldDetails(
+      emptyMetadata
+    );
+
+    Test.stopTest();
+
+    // Verify the results
+    Assert.isTrue(
+      result.isEmpty(),
+      'Result should be empty when input is empty'
+    );
   }
 }
