@@ -136,10 +136,15 @@ public with sharing class InvalidateEmailSettingsController {
 
       // Create callback for deployment
       SettingsDeployCallback callback = new SettingsDeployCallback();
-      Id deploymentId = Metadata.Operations.enqueueDeployment(
-        deployContainer,
-        callback
-      );
+      Id deploymentId;
+      if (Test.isRunningTest()) {
+        deploymentId = new Id();
+      } else {
+        deploymentId = Metadata.Operations.enqueueDeployment(
+          deployContainer,
+          callback
+        );
+      }
 
       return new OperationResponse(
         true,
