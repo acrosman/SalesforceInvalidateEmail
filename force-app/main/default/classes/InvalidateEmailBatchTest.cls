@@ -195,4 +195,119 @@ private class InvalidateEmailBatchTest {
     // The batch not have a problem with an empty result set.
     Assert.IsTrue(true, 'Batch should handle errors gracefully');
   }
+
+  @isTest
+  static void testGetFieldDetails() {
+    Test.startTest();
+
+    // Create test metadata map similar to what would come from Email_Invalidator_Fields__mdt.getAll()
+    Map<String, Email_Invalidator_Fields__mdt> testMetadata = new Map<String, Email_Invalidator_Fields__mdt>();
+
+    // Get the actual DurableId for Contact.Email field to use in test
+    EntityParticle contactEmailField = [
+      SELECT DurableId, QualifiedApiName, EntityDefinition.QualifiedApiName
+      FROM EntityParticle
+      WHERE
+        EntityDefinition.QualifiedApiName = 'Contact'
+        AND QualifiedApiName = 'Email'
+      LIMIT 1
+    ];
+
+    // Create a mock metadata record
+    Email_Invalidator_Fields__mdt mockField = new Email_Invalidator_Fields__mdt();
+    mockField.Field_Name__c = contactEmailField.DurableId;
+    testMetadata.put('Contact_Email', mockField);
+
+    // Test the getFieldDetails method
+    Map<String, Set<String>> result = InvalidateEmailBatch.getFieldDetails(
+      testMetadata
+    );
+
+    Test.stopTest();
+
+    // Verify the results
+    Assert.isTrue(
+      result.containsKey('Contact'),
+      'Result should contain Contact object'
+    );
+    Assert.isTrue(
+      result.get('Contact').contains('Email'),
+      'Contact should have Email field'
+    );
+    Assert.areEqual(
+      1,
+      result.get('Contact').size(),
+      'Contact should have exactly one field'
+    );
+  }
+
+  @isTest
+  static void testGetFieldDetailsWithMultipleFields() {
+    Test.startTest();
+
+    // Create test metadata map with multiple fields
+    Map<String, Email_Invalidator_Fields__mdt> testMetadata = new Map<String, Email_Invalidator_Fields__mdt>();
+
+    // Get DurableIds for multiple Contact fields
+    List<EntityParticle> contactFields = [
+      SELECT DurableId, DeveloperName, EntityDefinition.DeveloperName
+      FROM EntityParticle
+      WHERE
+        EntityDefinition.DeveloperName = 'Contact'
+        AND DeveloperName IN ('Email', 'AssistantEmail')
+      ORDER BY DeveloperName
+    ];
+
+    Integer fieldIndex = 0;
+    for (EntityParticle field : contactFields) {
+      Email_Invalidator_Fields__mdt mockField = new Email_Invalidator_Fields__mdt();
+      mockField.Field_Name__c = field.DurableId;
+      testMetadata.put('Contact_Field_' + fieldIndex, mockField);
+      fieldIndex++;
+    }
+
+    // Test the getFieldDetails method
+    Map<String, Set<String>> result = InvalidateEmailBatch.getFieldDetails(
+      testMetadata
+    );
+
+    Test.stopTest();
+
+    // Verify the results
+    Assert.isTrue(
+      result.containsKey('Contact'),
+      'Result should contain Contact object'
+    );
+    Assert.areEqual(
+      contactFields.size(),
+      result.get('Contact').size(),
+      'Contact should have the correct number of fields'
+    );
+
+    for (EntityParticle field : contactFields) {
+      Assert.isTrue(
+        result.get('Contact').contains(field.DeveloperName),
+        'Contact should contain field: ' + field.DeveloperName
+      );
+    }
+  }
+
+  @isTest
+  static void testGetFieldDetailsWithEmptyInput() {
+    Test.startTest();
+
+    // Test with empty metadata map
+    Map<String, Email_Invalidator_Fields__mdt> emptyMetadata = new Map<String, Email_Invalidator_Fields__mdt>();
+    Map<String, Set<String>> result = InvalidateEmailBatch.getFieldDetails(
+      emptyMetadata
+    );
+
+    Test.stopTest();
+
+    // Verify the results
+    Assert.isTrue(
+      result.isEmpty(),
+      'Result should be empty when input is empty'
+    );
+  }
 }
