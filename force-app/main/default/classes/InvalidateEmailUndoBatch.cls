@@ -150,30 +150,17 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
 
   // Static method to process all configured email fields from custom metadata
   public static void restoreAllConfiguredEmails() {
+    // Fetch the metadata and extract the field information using the shared method
     Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
-    Map<String, Set<String>> objectFields = new Map<String, Set<String>>();
-    Email_Invalidator_Fields__mdt currentField;
-    String currentFieldName;
-    // Create a collection of email fields by object.
-    for (String invalidatorKey : emailFields.keySet()) {
-      currentField = emailFields.get(invalidatorKey);
-      // Ensure the current object is on the list.
-      if (!objectFields.containsKey(currentField.Object__c)) {
-        objectFields.put(currentField.Object__c, new Set<String>());
-      }
-      // The field names are stored as [ObjectName].[FieldName] cause that's how SF handles such things in CMT.
-      // But we only want the field name, so we need to extract the string after the dot.
-      // No valid custom metadata record would have more than one dot in this context.
-      currentFieldName = currentField.Field_Name__c;
-      currentFieldName = currentFieldName.substringAfter('.');
-      objectFields.get(currentField.Object__c).add(currentFieldName);
-    }
+    Map<String, Set<String>> objectsWithFields = InvalidateEmailBatch.getFieldDetails(
+      emailFields
+    );
 
-    // Now create batches for each object
-    for (String objectName : objectFields.keySet()) {
+    // Create batches for each object
+    for (String objectName : objectsWithFields.keySet()) {
       InvalidateEmailUndoBatch batch = new InvalidateEmailUndoBatch(
         objectName,
-        objectFields.get(objectName)
+        objectsWithFields.get(objectName)
       );
       Database.executeBatch(batch, 200);
     }

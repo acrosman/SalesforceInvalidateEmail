@@ -162,8 +162,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   // from the metadata in a consistent form. The records use
   // 'DurableIds' which are names for standard fields, and Ids
   // for custom fields. We need names for everything.
-  @TestVisible
-  private static Map<String, Set<String>> getFieldDetails(
+  public static Map<String, Set<String>> getFieldDetails(
     Map<String, Email_Invalidator_Fields__mdt> fieldMetaList
   ) {
     Map<String, Set<String>> objectFields = new Map<String, Set<String>>();
