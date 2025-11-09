@@ -23,6 +23,12 @@
                 <identifier>c_invalidateEmailFieldsList</identifier>
             </componentInstance>
         </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>emailFieldScanner</componentName>
+                <identifier>c_emailFieldScanner</identifier>
+            </componentInstance>
+        </itemInstances>
         <name>column2</name>
         <type>Region</type>
     </flexiPageRegions>
