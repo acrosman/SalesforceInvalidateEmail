@@ -1,7 +1,9 @@
 {
-  "orgName": "acrosman company",
+  "orgName": "Email Project Scratch",
   "edition": "Developer",
-  "features": ["EnableSetPasswordInApi"],
+  "features": [
+    "EnableSetPasswordInApi"
+  ],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
