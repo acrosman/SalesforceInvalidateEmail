@@ -8,6 +8,8 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
   private Integer totalEmailFieldsFound = 0;
   @TestVisible
   private List<String> errors = new List<String>();
+  @TestVisible
+  private Set<String> existingMetadataKeys = new Set<String>();
 
   // Inner class to hold email field information
   public class EmailFieldInfo {
@@ -35,6 +37,12 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
     List<String> allObjects = new List<String>();
 
     try {
+      // Build existing metadata keys once to filter during discovery
+      Map<String, Email_Invalidator_Fields__mdt> existing = Email_Invalidator_Fields__mdt.getAll();
+      for (Email_Invalidator_Fields__mdt e : existing.values()) {
+        existingMetadataKeys.add(e.Field_Name__c);
+      }
+
       // Query all entity definitions to get object names
       List<EntityDefinition> entities = [
         SELECT QualifiedApiName, Label, IsCustomizable
@@ -122,6 +130,16 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
       ];
 
       for (FieldDefinition field : fields) {
+        String key = objectName + '.' + field.QualifiedApiName;
+        // Skip fields that already have a metadata record
+        System.debug(existingMetadataKeys);
+        if (existingMetadataKeys.contains(key)) {
+          System.debug(
+            'Skipping existing metadata-configured email field: ' + key
+          );
+          continue;
+        }
+
         EmailFieldInfo emailField = new EmailFieldInfo(
           objectName,
           field.QualifiedApiName,
@@ -512,29 +530,17 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
         emailBody += 'Objects Processed: ' + totalObjectsProcessed + '\n';
         emailBody += 'Email Fields Found: ' + totalEmailFieldsFound + '\n';
 
-        // Count new vs existing fields
-        Set<String> existingRecords = new Set<String>();
-        Map<String, Email_Invalidator_Fields__mdt> existingFields = Email_Invalidator_Fields__mdt.getAll();
-
-        for (Email_Invalidator_Fields__mdt existing : existingFields.values()) {
-          String key = existing.Object__c + '.' + existing.Field_Name__c;
-          existingRecords.add(key);
-        }
-
-        Integer newFieldsCount = 0;
-        Integer existingFieldsCount = 0;
-
-        for (EmailFieldInfo field : emailFieldsFound) {
-          String key = field.objectName + '.' + field.fieldName;
-          if (existingRecords.contains(key)) {
-            existingFieldsCount++;
-          } else {
-            newFieldsCount++;
-          }
-        }
+        // Since we filtered during discovery, all found are new.
+        // existingFieldsCount should reflect how many metadata records already exist overall.
+        Integer newFieldsCount = emailFieldsFound.size();
+        Integer existingFieldsCount = Email_Invalidator_Fields__mdt.getAll()
+          .size();
 
         emailBody += 'New Fields to Deploy: ' + newFieldsCount + '\n';
-        emailBody += 'Existing Fields Skipped: ' + existingFieldsCount + '\n';
+        emailBody +=
+          'Existing Fields Saved (total): ' +
+          existingFieldsCount +
+          '\n';
 
         if (job.NumberOfErrors > 0 || !errors.isEmpty()) {
           emailBody += 'Number of Errors: ' + job.NumberOfErrors + '\n';
@@ -548,10 +554,6 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
 
         emailBody += '\nAll email fields found:\n';
         for (EmailFieldInfo field : emailFieldsFound) {
-          String key = field.objectName + '.' + field.fieldName;
-          String status = existingRecords.contains(key)
-            ? ' (existing)'
-            : ' (new)';
           emailBody +=
             '- ' +
             field.objectName +
@@ -559,9 +561,7 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
             field.fieldName +
             ' (' +
             field.fieldLabel +
-            ')' +
-            status +
-            '\n';
+            ') (new)\n';
         }
 
         email.setPlainTextBody(emailBody);
