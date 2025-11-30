@@ -3,6 +3,22 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getCachedScanResults from '@salesforce/apex/EmailFieldScannerController.getCachedScanResults';
 import deploySelectedFields from '@salesforce/apex/EmailFieldScannerController.deploySelectedFields';
 
+// These objects cannot have email fields
+const INVALID_OBJECTS = [
+  "AlternativePaymentMethod",
+  "CardPaymentMethod",
+  "ContactCleanInfo",
+  "DigitalWallet",
+  "Event",
+  "LeadCleanInfo",
+  "Payment",
+  "PaymentAuthAdjustment",
+  "PaymentAuthorization",
+  "Refund",
+  "Task",
+  "User"
+];
+
 const COLUMNS = [
   {
     label: 'Object Name',
@@ -46,6 +62,10 @@ export default class EmailFieldScanner extends LightningElement {
     this.loadCachedResults();
   }
 
+  isInvalidObject(objectName) {
+    return INVALID_OBJECTS.includes(objectName);
+  }
+
   async loadCachedResults() {
     this.isLoading = true;
     try {
@@ -63,10 +83,13 @@ export default class EmailFieldScanner extends LightningElement {
 
         // Process email fields data for the table
         if (data.newEmailFields && data.newEmailFields.length > 0) {
-          this.emailFieldsData = data.newEmailFields.map((field, index) => ({
-            ...field,
-            uniqueKey: `${field.objectName}_${field.fieldName}_${index}`
-          }));
+          this.emailFieldsData = data.newEmailFields.map((field, index) => {
+
+            return {
+              ...field,
+              uniqueKey: `${field.objectName}_${field.fieldName}_${index}`,
+            };
+          });
         } else {
           this.emailFieldsData = [];
         }
@@ -92,7 +115,15 @@ export default class EmailFieldScanner extends LightningElement {
   }
 
   handleRowSelection(event) {
-    this.selectedRows = event.detail.selectedRows.map(row => row.uniqueKey);
+    // Filter out invalid objects from selection
+    const selectedRows = event.detail.selectedRows || [];
+    const validSelectedRows = selectedRows.filter(row => !this.isInvalidObject(row.objectName));
+
+    if (selectedRows.length !== validSelectedRows.length) {
+      this.showToast('Warning', 'Sorry. Cannot add fields from objects that are unsupported by custom metadata. They displayed here so you know which are still missing.', 'warning');
+    }
+
+    this.selectedRows = validSelectedRows.map(row => row.uniqueKey);
   }
 
   handleSort(event) {
