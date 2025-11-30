@@ -120,7 +120,7 @@ export default class EmailFieldScanner extends LightningElement {
     const validSelectedRows = selectedRows.filter(row => !this.isInvalidObject(row.objectName));
 
     if (selectedRows.length !== validSelectedRows.length) {
-      this.showToast('Warning', 'Sorry. Cannot add fields from objects that are unsupported by custom metadata. They displayed here so you know which are still missing.', 'warning');
+      this.showToast('Warning', 'Sorry. Cannot add fields from objects that are unsupported by custom metadata. They are displayed here so you know which are still at risk.', 'warning');
     }
 
     this.selectedRows = validSelectedRows.map(row => row.uniqueKey);
