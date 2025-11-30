@@ -1,10 +1,22 @@
 import { createElement } from '@lwc/engine-dom';
 import InvalidateEmail from 'c/invalidateEmail';
 import invalidateAllConfiguredEmails from '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura';
+import startEmailFieldScanAura from '@salesforce/apex/EmailFieldScannerController.startEmailFieldScanAura';
 
-// Mock the Apex method
+// Mock the Apex methods
 jest.mock(
     '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura',
+    () => {
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+        return {
+            default: createApexTestWireAdapter(jest.fn())
+        };
+    },
+    { virtual: true }
+);
+
+jest.mock(
+    '@salesforce/apex/EmailFieldScannerController.startEmailFieldScanAura',
     () => {
         const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
         return {
@@ -24,7 +36,7 @@ describe('c-invalidate-email', () => {
         jest.clearAllMocks();
     });
 
-    it('renders the component with both buttons', () => {
+    it('renders the component with all three buttons', () => {
         // Arrange
         const element = createElement('c-invalidate-email', {
             is: InvalidateEmail
@@ -39,7 +51,7 @@ describe('c-invalidate-email', () => {
         expect(card.title).toBe('Email Invalidation');
 
         const buttons = element.shadowRoot.querySelectorAll('lightning-button');
-        expect(buttons).toHaveLength(2);
+        expect(buttons).toHaveLength(3);
 
         const invalidateButton = buttons[0];
         expect(invalidateButton.label).toBe('Invalidate Emails');
@@ -48,6 +60,10 @@ describe('c-invalidate-email', () => {
         const restoreButton = buttons[1];
         expect(restoreButton.label).toBe('Restore Emails');
         expect(restoreButton.variant).toBe('success');
+
+        const scanButton = buttons[2];
+        expect(scanButton.label).toBe('Scan For Email Fields');
+        expect(scanButton.variant).toBe('brand');
     });
 
     it('calls Apex method and shows success toast on invalidate button click', async () => {
@@ -97,5 +113,30 @@ describe('c-invalidate-email', () => {
         // Assert that the button exists and is clickable
         expect(restoreButton).not.toBeNull();
         expect(restoreButton.label).toBe('Restore Emails');
+    });
+
+    it('calls Apex method and shows success toast on scan button click', async () => {
+        // Arrange
+        const mockResponse = {
+            success: true,
+            message: 'Email field scanning batch job started successfully. Results will be cached for your review instead of being deployed immediately.'
+        };
+        startEmailFieldScanAura.mockResolvedValue(mockResponse);
+
+        const element = createElement('c-invalidate-email', {
+            is: InvalidateEmail
+        });
+        document.body.appendChild(element);
+
+        // Act
+        const buttons = element.shadowRoot.querySelectorAll('lightning-button');
+        const scanButton = buttons[2];
+        scanButton.click();
+
+        // Wait for async operations
+        await Promise.resolve();
+
+        // Assert
+        expect(startEmailFieldScanAura).toHaveBeenCalledTimes(1);
     });
 });

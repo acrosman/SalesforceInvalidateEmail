@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Cached_Value__c</fullName>
+    <description>The value to be cached. Generally expects a JSON payload</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
+    <inlineHelpText>The value in the cache.</inlineHelpText>
+    <label>Cached Value</label>
+    <length>131072</length>
+    <type>LongTextArea</type>
+    <visibleLines>5</visibleLines>
+</CustomField>
