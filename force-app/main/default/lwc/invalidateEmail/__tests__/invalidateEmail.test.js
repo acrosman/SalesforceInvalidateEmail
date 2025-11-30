@@ -62,7 +62,7 @@ describe('c-invalidate-email', () => {
         expect(restoreButton.variant).toBe('success');
 
         const scanButton = buttons[2];
-        expect(scanButton.label).toBe('Scan Email Fields');
+        expect(scanButton.label).toBe('Scan For Email Fields');
         expect(scanButton.variant).toBe('brand');
     });
 
