@@ -143,32 +143,60 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
 
   // Static method to process all configured email fields from custom metadata
   public static void invalidateAllConfiguredEmails() {
+    // Fetch the metadata and extract the field information.
     Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
-    Map<String, Set<String>> objectFields = new Map<String, Set<String>>();
-    Email_Invalidator_Fields__mdt currentField;
-    String currentFieldName;
-    // Create a collection of email fields by object.
-    for (String invalidatorKey : emailFields.keySet()) {
-      currentField = emailFields.get(invalidatorKey);
-      // Ensure the current object is on the list.
-      if (!objectFields.containsKey(currentField.Object__c)) {
-        objectFields.put(currentField.Object__c, new Set<String>());
-      }
-      // The field names are stored as [ObjectName].[FieldName] cause that's how SF handles such things in CMT.
-      // But we only want the field name, so we need to extract the string after the dot.
-      // No valid custom metadata record would have more than one dot in this context.
-      currentFieldName = currentField.Field_Name__c;
-      currentFieldName = currentFieldName.substringAfter('.');
-      objectFields.get(currentField.Object__c).add(currentFieldName);
-    }
+    Map<String, Set<String>> objectsWithFields = getFieldDetails(emailFields);
 
-    // Now create batches for each object
-    for (String objectName : objectFields.keySet()) {
+    // Create batches for each object
+    // TODO: Protect against the 60 batch limit.
+    for (String objectName : objectsWithFields.keySet()) {
       InvalidateEmailBatch batch = new InvalidateEmailBatch(
         objectName,
-        objectFields.get(objectName)
+        objectsWithFields.get(objectName)
       );
       Database.executeBatch(batch, 200);
     }
+  }
+
+  // Helper method to extract the object and field information
+  // from the metadata in a consistent form. The records use
+  // 'DurableIds' which are names for standard fields, and Ids
+  // for custom fields. We need names for everything.
+  public static Map<String, Set<String>> getFieldDetails(
+    Map<String, Email_Invalidator_Fields__mdt> fieldMetaList
+  ) {
+    Map<String, Set<String>> objectFields = new Map<String, Set<String>>();
+    Email_Invalidator_Fields__mdt currentField;
+    String objectApiName;
+    List<String> fieldDurableIds = new List<String>();
+
+    // Prep the map we'll return with object names as keys, and extra
+    // the Durableids from the metadata to query in one shot.
+    for (String invalidatorKey : fieldMetaList.keySet()) {
+      currentField = fieldMetaList.get(invalidatorKey);
+
+      fieldDurableIds.add(currentField.Field_Name__c);
+    }
+
+    // Now get all the EntityParticles based on the list of DurableIds
+    for (EntityParticle ep : [
+      SELECT
+        QualifiedApiName,
+        DataType,
+        EntityDefinition.QualifiedApiName,
+        DurableId
+      FROM EntityParticle
+      WHERE DurableId IN :fieldDurableIds
+    ]) {
+      System.debug(ep);
+      objectApiName = ep.EntityDefinition.QualifiedApiName;
+      if (!objectFields.containsKey(objectApiName)) {
+        objectFields.put(objectApiName, new Set<String>());
+      }
+
+      objectFields.get(objectApiName).add(ep.QualifiedApiName);
+    }
+
+    return objectFields;
   }
 }
