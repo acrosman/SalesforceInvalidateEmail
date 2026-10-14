@@ -8,20 +8,62 @@ private class InvalidateEmailUndoFlowActionTest {
 
   @testSetup
   static void setupTestData() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    Assert.isTrue(
+      String.isNotBlank(invalidationText),
+      'Invalidation text should never be blank'
+    );
+
     List<Contact> testContacts = InvalidateEmailTestDataFactory.createTestContacts(
       contactCount
     );
 
     // Invalidate the emails first so we have something to restore
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     for (Contact contact : testContacts) {
       contact.Email = contact.Email + invalidationText;
     }
     update testContacts;
+
+    String likePattern = '%' + invalidationText;
+    Assert.areEqual(
+      contactCount,
+      [SELECT COUNT() FROM Contact WHERE Email LIKE :likePattern],
+      'Setup failed to leave ' + contactCount + ' contacts invalidated'
+    );
+  }
+
+  // Use a known field configuration so results don't depend on the
+  // Email_Invalidator_Fields__mdt records in the org.
+  private static void useContactEmailConfig() {
+    InvalidateEmailBatch.configuredFieldsOverride = new Map<String, Set<String>>{
+      'Contact' => new Set<String>{ 'Email' }
+    };
+  }
+
+  private static void assertAllEmailsRestored() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    List<Contact> contacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email != NULL
+    ];
+    Assert.areEqual(
+      contactCount,
+      contacts.size(),
+      'Expected ' + contactCount + ' contacts with an email address'
+    );
+
+    for (Contact contact : contacts) {
+      Assert.isFalse(
+        contact.Email.endsWith(invalidationText),
+        'Email was not restored, still ends with ' + invalidationText
+      );
+    }
   }
 
   @isTest
   static void testRestoreAllConfiguredEmailsAction() {
+    useContactEmailConfig();
     Test.startTest();
 
     List<InvalidateEmailUndoFlowAction.EmailRestorationResponse> responses = InvalidateEmailUndoFlowAction.restoreAllConfiguredEmailsAction();
@@ -31,36 +73,18 @@ private class InvalidateEmailUndoFlowActionTest {
     // Verify response
     Assert.areEqual(1, responses.size(), 'Should return one response');
     InvalidateEmailUndoFlowAction.EmailRestorationResponse response = responses[0];
-    Assert.areEqual(true, response.success, 'Should be successful');
+    Assert.isTrue(response.success, 'Should be successful');
     Assert.isTrue(
       response.message.contains('started'),
       'Should contain success message'
     );
 
-    // Verify that Contact emails were restored
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    String notLikePattern = '%' + invalidationText;
-    List<Contact> restoredContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
-    ];
-    Assert.areEqual(
-      contactCount,
-      restoredContacts.size(),
-      'All contact emails should be restored'
-    );
-
-    for (Contact contact : restoredContacts) {
-      Assert.isFalse(
-        contact.Email.contains(invalidationText),
-        'Email should not contain ' + invalidationText
-      );
-    }
+    assertAllEmailsRestored();
   }
 
   @isTest
   static void testRestoreAllConfiguredEmailsAuraMethod() {
+    useContactEmailConfig();
     Test.startTest();
 
     InvalidateEmailUndoFlowAction.EmailRestorationResponse response = InvalidateEmailUndoFlowAction.restoreAllConfiguredEmailsAura();
@@ -79,30 +103,12 @@ private class InvalidateEmailUndoFlowActionTest {
       'Should contain success message'
     );
 
-    // Verify that Contact emails were restored
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    String notLikePattern = '%' + invalidationText;
-    List<Contact> restoredContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
-    ];
-    Assert.areEqual(
-      contactCount,
-      restoredContacts.size(),
-      'All contact emails should be restored'
-    );
-
-    for (Contact contact : restoredContacts) {
-      Assert.isFalse(
-        contact.Email.contains(invalidationText),
-        'Email should not contain ' + invalidationText
-      );
-    }
+    assertAllEmailsRestored();
   }
 
   @isTest
   static void testExecuteEmailRestorationHelper() {
+    useContactEmailConfig();
     Test.startTest();
 
     InvalidateEmailUndoFlowAction.EmailRestorationResponse response = InvalidateEmailUndoFlowAction.executeEmailRestoration();
@@ -121,26 +127,7 @@ private class InvalidateEmailUndoFlowActionTest {
       'Should contain success message'
     );
 
-    // Verify that Contact emails were restored
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    String notLikePattern = '%' + invalidationText;
-    List<Contact> restoredContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
-    ];
-    Assert.areEqual(
-      contactCount,
-      restoredContacts.size(),
-      'All contact emails should be restored'
-    );
-
-    for (Contact contact : restoredContacts) {
-      Assert.isFalse(
-        contact.Email.contains(invalidationText),
-        'Email should not contain ' + invalidationText
-      );
-    }
+    assertAllEmailsRestored();
   }
 
   @isTest
@@ -148,6 +135,7 @@ private class InvalidateEmailUndoFlowActionTest {
     // Delete all the contacts from Setup
     List<Contact> contacts = [SELECT Id FROM Contact];
     delete contacts;
+    useContactEmailConfig();
 
     Test.startTest();
 

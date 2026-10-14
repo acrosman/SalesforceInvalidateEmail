@@ -3,74 +3,74 @@
  */
 @IsTest
 private class InvalidateEmailSettingsControllerTest {
+  private static final String SETTING_NAME = 'Invalidation_Text';
+  private static final String SETTING_LABEL = 'Invalidation Text';
+
+  private static InvalidateEmailSettingsController.SettingWrapper findSetting(
+    InvalidateEmailSettingsController.OperationResponse response,
+    String settingName
+  ) {
+    for (
+      InvalidateEmailSettingsController.SettingWrapper setting : response.settings
+    ) {
+      if (setting.name == settingName) {
+        return setting;
+      }
+    }
+    return null;
+  }
+
   @IsTest
   static void testGetCurrentSettings() {
-    Test.startTest();
-
-    // Test getting current settings
     InvalidateEmailSettingsController.OperationResponse response = InvalidateEmailSettingsController.getCurrentSettings();
 
-    Test.stopTest();
+    Assert.isTrue(response.success, 'getCurrentSettings should succeed');
+    Assert.isNotNull(response.settings, 'Settings should not be null');
+    Assert.areEqual(1, response.settings.size(), 'Should have one setting');
 
-    // Verify response
-    System.assert(response.success, 'getCurrentSettings should succeed');
-    System.assertNotEquals(
-      null,
-      response.settings,
-      'Settings should not be null'
+    InvalidateEmailSettingsController.SettingWrapper setting = findSetting(
+      response,
+      SETTING_NAME
     );
-    System.assertEquals(1, response.settings.size(), 'Should have one setting');
-
-    // Verify the Invalidation_Text setting
-    InvalidateEmailSettingsController.SettingWrapper setting = response.settings[0];
-    System.assertEquals(
-      'Invalidation_Text',
-      setting.name,
-      'Setting name should match'
+    Assert.isNotNull(
+      setting,
+      'Response should include the ' + SETTING_NAME + ' setting'
     );
-    System.assertEquals(
-      'Invalidation Text',
+    Assert.areEqual(
+      SETTING_LABEL,
       setting.label,
       'Setting label should be formatted'
     );
-    System.assertEquals('.invalid', setting.value, 'Should have default value');
-    System.assertEquals(
-      false,
-      setting.isModified,
-      'Should not be modified initially'
+    // The org may have customized the value, so compare against what the
+    // batches will actually use rather than a hard coded default.
+    Assert.areEqual(
+      InvalidateEmailSettings.getInvalidationText(),
+      setting.value,
+      'Controller and InvalidateEmailSettings should resolve the same value'
     );
+    Assert.isFalse(setting.isModified, 'Should not be modified initially');
   }
 
   @IsTest
   static void testSaveSettingsWithNoModifications() {
-    Test.startTest();
-
     // Create settings with no modifications
     List<InvalidateEmailSettingsController.SettingWrapper> settings = new List<InvalidateEmailSettingsController.SettingWrapper>();
     settings.add(
       new InvalidateEmailSettingsController.SettingWrapper(
-        'Invalidation_Text',
-        'Invalidation Text',
-        '.invalid'
+        SETTING_NAME,
+        SETTING_LABEL,
+        InvalidateEmailSettings.getInvalidationText()
       )
     );
 
     String settingsJson = JSON.serialize(settings);
 
-    // Test saving settings with no modifications
     InvalidateEmailSettingsController.OperationResponse response = InvalidateEmailSettingsController.saveSettings(
       settingsJson
     );
 
-    Test.stopTest();
-
-    // Verify response
-    System.assertEquals(
-      false,
-      response.success,
-      'Should fail when no modifications'
-    );
-    System.assert(
+    Assert.isFalse(response.success, 'Should fail when no modifications');
+    Assert.isTrue(
       response.message.contains('No modified settings'),
       'Should indicate no modifications'
     );
@@ -78,13 +78,11 @@ private class InvalidateEmailSettingsControllerTest {
 
   @IsTest
   static void testSaveSettingsWithModifications() {
-    Test.startTest();
-
     // Create settings with modifications
     List<InvalidateEmailSettingsController.SettingWrapper> settings = new List<InvalidateEmailSettingsController.SettingWrapper>();
     InvalidateEmailSettingsController.SettingWrapper setting = new InvalidateEmailSettingsController.SettingWrapper(
-      'Invalidation_Text',
-      'Invalidation Text',
+      SETTING_NAME,
+      SETTING_LABEL,
       '.test'
     );
     setting.isModified = true;
@@ -92,16 +90,12 @@ private class InvalidateEmailSettingsControllerTest {
 
     String settingsJson = JSON.serialize(settings);
 
-    // Test saving settings with modifications
     InvalidateEmailSettingsController.OperationResponse response = InvalidateEmailSettingsController.saveSettings(
       settingsJson
     );
 
-    Test.stopTest();
-
-    // Verify response
-    System.assert(response.success, 'Should succeed when modifications exist');
-    System.assert(
+    Assert.isTrue(response.success, 'Should succeed when modifications exist');
+    Assert.isTrue(
       response.message.contains('deployment initiated'),
       'Should indicate deployment started'
     );
@@ -109,22 +103,12 @@ private class InvalidateEmailSettingsControllerTest {
 
   @IsTest
   static void testSaveSettingsWithInvalidJson() {
-    Test.startTest();
-
-    // Test with invalid JSON
     InvalidateEmailSettingsController.OperationResponse response = InvalidateEmailSettingsController.saveSettings(
       'invalid json'
     );
 
-    Test.stopTest();
-
-    // Verify response
-    System.assertEquals(
-      false,
-      response.success,
-      'Should fail with invalid JSON'
-    );
-    System.assert(
+    Assert.isFalse(response.success, 'Should fail with invalid JSON');
+    Assert.isTrue(
       response.message.contains('Error saving settings'),
       'Should indicate error'
     );
@@ -133,80 +117,59 @@ private class InvalidateEmailSettingsControllerTest {
   @IsTest
   static void testFormatLabel() {
     // Test the private formatLabel method indirectly through getCurrentSettings
-    Test.startTest();
-
     InvalidateEmailSettingsController.OperationResponse response = InvalidateEmailSettingsController.getCurrentSettings();
 
-    Test.stopTest();
-
-    // Verify label formatting
-    InvalidateEmailSettingsController.SettingWrapper setting = response.settings[0];
-    System.assertEquals(
-      'Invalidation Text',
-      setting.label,
-      'Underscores should be replaced with spaces'
-    );
+    for (
+      InvalidateEmailSettingsController.SettingWrapper setting : response.settings
+    ) {
+      Assert.areEqual(
+        setting.name.replace('_', ' '),
+        setting.label,
+        'Underscores should be replaced with spaces'
+      );
+    }
   }
 
   @IsTest
   static void testSettingWrapperConstructor() {
-    // Test SettingWrapper constructor
     InvalidateEmailSettingsController.SettingWrapper setting = new InvalidateEmailSettingsController.SettingWrapper(
       'Test_Name',
       'Test Label',
       'Test Value'
     );
 
-    System.assertEquals(
-      'Test_Name',
-      setting.name,
-      'Name should be set correctly'
-    );
-    System.assertEquals(
+    Assert.areEqual('Test_Name', setting.name, 'Name should be set correctly');
+    Assert.areEqual(
       'Test Label',
       setting.label,
       'Label should be set correctly'
     );
-    System.assertEquals(
+    Assert.areEqual(
       'Test Value',
       setting.value,
       'Value should be set correctly'
     );
-    System.assertEquals(
-      false,
-      setting.isModified,
-      'isModified should default to false'
-    );
+    Assert.isFalse(setting.isModified, 'isModified should default to false');
   }
 
   @IsTest
   static void testOperationResponseConstructor() {
-    // Test OperationResponse constructor
     InvalidateEmailSettingsController.OperationResponse response = new InvalidateEmailSettingsController.OperationResponse(
       true,
       'Test message'
     );
 
-    System.assertEquals(
-      true,
-      response.success,
-      'Success should be set correctly'
-    );
-    System.assertEquals(
+    Assert.isTrue(response.success, 'Success should be set correctly');
+    Assert.areEqual(
       'Test message',
       response.message,
       'Message should be set correctly'
     );
-    System.assertEquals(
-      null,
-      response.settings,
-      'Settings should default to null'
-    );
+    Assert.isNull(response.settings, 'Settings should default to null');
   }
 
   @IsTest
   static void testSettingsDeployCallback() {
-    // Test the deploy callback class
     InvalidateEmailSettingsController.SettingsDeployCallback callback = new InvalidateEmailSettingsController.SettingsDeployCallback();
 
     // Create a mock deploy result
@@ -214,12 +177,13 @@ private class InvalidateEmailSettingsControllerTest {
     mockResult.done = true;
     mockResult.success = true;
 
-    // Test the callback (this mainly tests that it doesn't throw exceptions)
-    Test.startTest();
+    InvalidateEmailSettings.getInvalidationText();
     callback.handleResult(mockResult, null);
-    Test.stopTest();
 
-    // If we get here without exceptions, the test passes
-    System.assert(true, 'Callback should handle result without exceptions');
+    // A successful deploy clears the cache; the next read must reload a value.
+    Assert.isTrue(
+      String.isNotBlank(InvalidateEmailSettings.getInvalidationText()),
+      'Invalidation text should reload after the cache is cleared'
+    );
   }
 }

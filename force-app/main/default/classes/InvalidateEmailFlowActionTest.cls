@@ -8,11 +8,60 @@ private class InvalidateEmailFlowActionTest {
 
   @testSetup
   static void setupTestData() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    Assert.isTrue(
+      String.isNotBlank(invalidationText),
+      'Invalidation text should never be blank'
+    );
+
     InvalidateEmailTestDataFactory.createTestContacts(contactCount);
+
+    String likePattern = '%' + invalidationText;
+    Assert.areEqual(
+      contactCount,
+      [SELECT COUNT() FROM Contact WHERE Email != NULL],
+      'Setup should have created ' + contactCount + ' contacts with an email'
+    );
+    Assert.areEqual(
+      0,
+      [SELECT COUNT() FROM Contact WHERE Email LIKE :likePattern],
+      'No contact should already be invalidated before the batch runs'
+    );
+  }
+
+  // Use a known field configuration so results don't depend on the
+  // Email_Invalidator_Fields__mdt records in the org.
+  private static void useContactEmailConfig() {
+    InvalidateEmailBatch.configuredFieldsOverride = new Map<String, Set<String>>{
+      'Contact' => new Set<String>{ 'Email' }
+    };
+  }
+
+  private static void assertAllEmailsInvalidated() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String likePattern = '%' + invalidationText;
+    List<Contact> invalidatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE :likePattern
+    ];
+    Assert.areEqual(
+      contactCount,
+      invalidatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
+
+    for (Contact contact : invalidatedContacts) {
+      Assert.isTrue(
+        contact.Email.endsWith(invalidationText),
+        'Email should end with ' + invalidationText
+      );
+    }
   }
 
   @isTest
   static void testInvalidateAllConfiguredEmailsAction() {
+    useContactEmailConfig();
     Test.startTest();
 
     List<InvalidateEmailFlowAction.EmailInvalidationResponse> responses = InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAction();
@@ -22,35 +71,18 @@ private class InvalidateEmailFlowActionTest {
     // Verify response
     Assert.areEqual(1, responses.size(), 'Should return one response');
     InvalidateEmailFlowAction.EmailInvalidationResponse response = responses[0];
-    Assert.areEqual(true, response.success, 'Should be successful');
+    Assert.isTrue(response.success, 'Should be successful');
     Assert.isTrue(
       response.message.contains('started'),
       'Should contain success message'
     );
 
-    // Verify that Contact emails were invalidated
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    List<Contact> updatedContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email LIKE :('%' + invalidationText)
-    ];
-    Assert.areEqual(
-      contactCount,
-      updatedContacts.size(),
-      'All contact emails should be invalidated'
-    );
-
-    for (Contact contact : updatedContacts) {
-      Assert.isTrue(
-        contact.Email.contains(invalidationText),
-        'Email should contain ' + invalidationText
-      );
-    }
+    assertAllEmailsInvalidated();
   }
 
   @isTest
   static void testInvalidateAllConfiguredEmailsAuraMethod() {
+    useContactEmailConfig();
     Test.startTest();
 
     InvalidateEmailFlowAction.EmailInvalidationResponse response = InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura();
@@ -69,29 +101,12 @@ private class InvalidateEmailFlowActionTest {
       'Should contain success message'
     );
 
-    // Verify that Contact emails were invalidated
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    List<Contact> updatedContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email LIKE :('%' + invalidationText)
-    ];
-    Assert.areEqual(
-      contactCount,
-      updatedContacts.size(),
-      'All contact emails should be invalidated'
-    );
-
-    for (Contact contact : updatedContacts) {
-      Assert.isTrue(
-        contact.Email.contains(invalidationText),
-        'Email should contain ' + invalidationText
-      );
-    }
+    assertAllEmailsInvalidated();
   }
 
   @isTest
   static void testInvalidateAllConfiguredEmailsHelper() {
+    useContactEmailConfig();
     Test.startTest();
 
     InvalidateEmailFlowAction.EmailInvalidationResponse response = InvalidateEmailFlowAction.executeEmailInvalidation();
@@ -110,25 +125,7 @@ private class InvalidateEmailFlowActionTest {
       'Should contain success message'
     );
 
-    // Verify that Contact emails were invalidated
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    List<Contact> updatedContacts = [
-      SELECT Id, Email
-      FROM Contact
-      WHERE Email LIKE :('%' + invalidationText)
-    ];
-    Assert.areEqual(
-      contactCount,
-      updatedContacts.size(),
-      'All contact emails should be invalidated'
-    );
-
-    for (Contact contact : updatedContacts) {
-      Assert.isTrue(
-        contact.Email.contains(invalidationText),
-        'Email should contain ' + invalidationText
-      );
-    }
+    assertAllEmailsInvalidated();
   }
 
   @isTest
@@ -136,6 +133,7 @@ private class InvalidateEmailFlowActionTest {
     // Delete all the contacts from Setup
     List<Contact> contacts = [SELECT Id FROM Contact];
     delete contacts;
+    useContactEmailConfig();
 
     Test.startTest();
 

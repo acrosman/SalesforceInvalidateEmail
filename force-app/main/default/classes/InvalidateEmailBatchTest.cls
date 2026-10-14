@@ -84,39 +84,77 @@ private class InvalidateEmailBatchTest {
 
   @isTest
   static void testInvalidateAllConfiguredEmails() {
+    // Use a known field configuration so results don't depend on the
+    // Email_Invalidator_Fields__mdt records in the org.
+    InvalidateEmailBatch.configuredFieldsOverride = new Map<String, Set<String>>{
+      'Contact' => new Set<String>{ 'Email' }
+    };
+
     Test.startTest();
 
     InvalidateEmailBatch.invalidateAllConfiguredEmails();
 
     Test.stopTest();
 
-    // We need the default Contact_Email custom metadata type for a meaningful test, but it's possible
-    // that was deleted in real-life, so we fallback to a useless test.
-    Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
-    if (emailFields.containsKey('Contact_Email')) {
-      // Verify that Contact emails were invalidated
-      String invalidationText = InvalidateEmailSettings.getInvalidationText();
-      List<Contact> updatedContacts = [
-        SELECT Id, Email
-        FROM Contact
-        WHERE Email LIKE :('%' + invalidationText)
-      ];
-      Assert.areEqual(
-        contactCount,
-        updatedContacts.size(),
-        'All contact emails should be invalidated'
-      );
+    // Verify that Contact emails were invalidated
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    List<Contact> updatedContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email LIKE :('%' + invalidationText)
+    ];
+    Assert.areEqual(
+      contactCount,
+      updatedContacts.size(),
+      'All contact emails should be invalidated'
+    );
 
-      for (Contact contact : updatedContacts) {
-        Assert.isTrue(
-          contact.Email.contains(invalidationText),
-          'Email should contain ' + invalidationText
-        );
-      }
-    } else {
+    for (Contact contact : updatedContacts) {
       Assert.isTrue(
-        true,
-        'This test is impossible to fail, if the the code ran successfully'
+        contact.Email.endsWith(invalidationText),
+        'Email should end with ' + invalidationText
+      );
+    }
+  }
+
+  @isTest
+  static void testGetConfiguredFieldsFromMetadata() {
+    // Without an override the configuration comes from custom metadata,
+    // whose contents vary by org, so only check the call succeeds.
+    Map<String, Set<String>> result = InvalidateEmailBatch.getConfiguredFields();
+
+    Assert.isNotNull(result, 'Configured fields should never be null');
+  }
+
+  @isTest
+  static void testBatchMultipleFieldsSameRecord() {
+    // Contact has no second standard email field, so Title stands in for one.
+    // Invalidating two fields on one record must not add it to the update list twice.
+    List<Contact> contacts = [SELECT Id FROM Contact];
+    for (Contact contact : contacts) {
+      contact.Title = 'Manager';
+    }
+    update contacts;
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email', 'Title' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom
+
+    Test.stopTest();
+
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    for (Contact contact : [SELECT Email, Title FROM Contact]) {
+      Assert.isTrue(
+        contact.Email.endsWith(invalidationText),
+        'Email should be invalidated'
+      );
+      Assert.isTrue(
+        contact.Title.endsWith(invalidationText),
+        'Title should be invalidated'
       );
     }
   }

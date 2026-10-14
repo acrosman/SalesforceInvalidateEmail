@@ -1,17 +1,18 @@
-@isTest
+/**
+ * Test class for InvalidateEmailSandboxPostCopy
+ */
+@IsTest
 private class InvalidateEmailSandboxPostCopyTest {
   private static Integer contactCount = 10;
 
-  @testSetup
+  @TestSetup
   static void setupTestData() {
     InvalidateEmailTestDataFactory.createTestContacts(contactCount);
   }
 
   @IsTest
   static void testInvalidateEmailSandboxPostCopyConstructor() {
-    Test.startTest();
     InvalidateEmailSandboxPostCopy spc = new InvalidateEmailSandboxPostCopy();
-    Test.stopTest();
 
     Assert.isInstanceOfType(
       spc,
@@ -22,6 +23,20 @@ private class InvalidateEmailSandboxPostCopyTest {
 
   @IsTest
   static void testInvalidateEmailSandboxPostCopyRun() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String likePattern = '%' + invalidationText;
+    Assert.areEqual(
+      0,
+      [SELECT COUNT() FROM Contact WHERE Email LIKE :likePattern],
+      'No contact should already be invalidated before the script runs'
+    );
+
+    // Use a known field configuration so results don't depend on the
+    // Email_Invalidator_Fields__mdt records in the org.
+    InvalidateEmailBatch.configuredFieldsOverride = new Map<String, Set<String>>{
+      'Contact' => new Set<String>{ 'Email' }
+    };
+
     Test.startTest();
     Test.testSandboxPostCopyScript(
       new InvalidateEmailSandboxPostCopy(),
@@ -30,26 +45,24 @@ private class InvalidateEmailSandboxPostCopyTest {
       UserInfo.getOrganizationName(),
       true
     );
-
     Test.stopTest();
 
     // Verify that Contact emails were invalidated
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    List<Contact> updatedContacts = [
+    List<Contact> invalidatedContacts = [
       SELECT Id, Email
       FROM Contact
-      WHERE Email LIKE :('%' + invalidationText)
+      WHERE Email LIKE :likePattern
     ];
-    System.assertEquals(
+    Assert.areEqual(
       contactCount,
-      updatedContacts.size(),
+      invalidatedContacts.size(),
       'All contact emails should be invalidated'
     );
 
-    for (Contact contact : updatedContacts) {
-      System.assert(
-        contact.Email.contains(invalidationText),
-        'Email should contain ' + invalidationText
+    for (Contact contact : invalidatedContacts) {
+      Assert.isTrue(
+        contact.Email.endsWith(invalidationText),
+        'Email should end with ' + invalidationText
       );
     }
   }
