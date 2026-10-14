@@ -16,7 +16,9 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
 
     // Create a comma spliced string of fields.
     String preppedFields = 'Id';
-    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String invalidationText = String.escapeSingleQuotes(
+      InvalidateEmailSettings.getInvalidationText()
+    );
     String whereClause = ' WHERE Id!=\'\' AND (';
     for (String f : fields) {
       preppedFields = preppedFields + ',' + f;
@@ -43,6 +45,9 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
     List<SObject> recordsToUpdate = new List<SObject>();
 
     for (SObject record : scope) {
+      // Track changes per record so it is only added to the update list once,
+      // even when several of its email fields are restored.
+      Boolean changed = false;
       for (String emailField : fields) {
         try {
           System.debug('Processing record: ' + record);
@@ -56,8 +61,7 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
             String restoredEmail = currentEmail.removeEnd(invalidationText);
 
             record.put(emailField, restoredEmail);
-            recordsToUpdate.add(record);
-            recordsProcessed++;
+            changed = true;
           }
         } catch (Exception e) {
           errors.add(
@@ -65,6 +69,10 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
           );
           System.debug('Error processing record: ' + e.getMessage());
         }
+      }
+      if (changed) {
+        recordsToUpdate.add(record);
+        recordsProcessed++;
       }
     }
 
@@ -150,11 +158,8 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
 
   // Static method to process all configured email fields from custom metadata
   public static void restoreAllConfiguredEmails() {
-    // Fetch the metadata and extract the field information using the shared method
-    Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
-    Map<String, Set<String>> objectsWithFields = InvalidateEmailBatch.getFieldDetails(
-      emailFields
-    );
+    // Fetch the field information using the shared method
+    Map<String, Set<String>> objectsWithFields = InvalidateEmailBatch.getConfiguredFields();
 
     // Create batches for each object
     for (String objectName : objectsWithFields.keySet()) {

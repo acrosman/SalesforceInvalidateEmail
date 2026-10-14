@@ -92,41 +92,67 @@ private class InvalidateEmailUndoBatchTest {
 
   @isTest
   static void testRestoreAllConfiguredEmails() {
+    // Use a known field configuration so results don't depend on the
+    // Email_Invalidator_Fields__mdt records in the org.
+    InvalidateEmailBatch.configuredFieldsOverride = new Map<String, Set<String>>{
+      'Contact' => new Set<String>{ 'Email' }
+    };
+
     Test.startTest();
 
     InvalidateEmailUndoBatch.restoreAllConfiguredEmails();
 
     Test.stopTest();
 
-    // We need the default Contact_Email custom metadata type for a meaningful test, but it's possible
-    // that was deleted in real-life, so we fallback to a useless test.
-    Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
-    if (emailFields.containsKey('Contact_Email')) {
-      // Verify that Contact emails were restored
-      String invalidationText = InvalidateEmailSettings.getInvalidationText();
-      String notLikePattern = '%' + invalidationText;
-      List<Contact> restoredContacts = [
-        SELECT Id, Email
-        FROM Contact
-        WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
-      ];
-      Assert.areEqual(
-        contactCount,
-        restoredContacts.size(),
-        'All contact emails should be restored'
-      );
+    // Verify that Contact emails were restored
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String notLikePattern = '%' + invalidationText;
+    List<Contact> restoredContacts = [
+      SELECT Id, Email
+      FROM Contact
+      WHERE Email != NULL AND Email != '' AND (NOT Email LIKE :notLikePattern)
+    ];
+    Assert.areEqual(
+      contactCount,
+      restoredContacts.size(),
+      'All contact emails should be restored'
+    );
 
-      for (Contact contact : restoredContacts) {
-        Assert.isTrue(
-          !contact.Email.contains(invalidationText),
-          'Email should not contain ' + invalidationText
-        );
-      }
-    } else {
-      Assert.isTrue(
-        true,
-        'This test is impossible to fail, if the code ran successfully'
+    for (Contact contact : restoredContacts) {
+      Assert.isFalse(
+        contact.Email.endsWith(invalidationText),
+        'Email should not end with ' + invalidationText
       );
+    }
+  }
+
+  @isTest
+  static void testBatchMultipleFieldsSameRecord() {
+    // Contact has no second standard email field, so Title stands in for one.
+    // Restoring two fields on one record must not add it to the update list twice.
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    List<Contact> contacts = [SELECT Id FROM Contact];
+    for (Contact contact : contacts) {
+      contact.Title = 'Manager' + invalidationText;
+    }
+    update contacts;
+
+    Test.startTest();
+
+    InvalidateEmailUndoBatch batch = new InvalidateEmailUndoBatch(
+      'Contact',
+      new Set<String>{ 'Email', 'Title' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom
+
+    Test.stopTest();
+
+    for (Contact contact : [SELECT Email, Title FROM Contact]) {
+      Assert.isFalse(
+        contact.Email.endsWith(invalidationText),
+        'Email should be restored'
+      );
+      Assert.areEqual('Manager', contact.Title, 'Title should be restored');
     }
   }
 

@@ -36,6 +36,9 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     List<SObject> recordsToUpdate = new List<SObject>();
 
     for (SObject record : scope) {
+      // Track changes per record so it is only added to the update list once,
+      // even when several of its email fields are invalidated.
+      Boolean changed = false;
       for (String emailField : fields) {
         try {
           System.debug('Processing record: ' + record);
@@ -49,8 +52,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
             String invalidatedEmail = currentEmail + invalidationText;
 
             record.put(emailField, invalidatedEmail);
-            recordsToUpdate.add(record);
-            recordsProcessed++;
+            changed = true;
           }
         } catch (Exception e) {
           errors.add(
@@ -58,6 +60,10 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
           );
           System.debug('Error processing record: ' + e.getMessage());
         }
+      }
+      if (changed) {
+        recordsToUpdate.add(record);
+        recordsProcessed++;
       }
     }
 
@@ -141,11 +147,22 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     }
   }
 
+  // Lets tests supply the object/field configuration so they don't depend on
+  // the Email_Invalidator_Fields__mdt records present in the org.
+  @TestVisible
+  private static Map<String, Set<String>> configuredFieldsOverride;
+
+  // Returns the configured email fields, keyed by object API name.
+  public static Map<String, Set<String>> getConfiguredFields() {
+    if (configuredFieldsOverride != null) {
+      return configuredFieldsOverride;
+    }
+    return getFieldDetails(Email_Invalidator_Fields__mdt.getAll());
+  }
+
   // Static method to process all configured email fields from custom metadata
   public static void invalidateAllConfiguredEmails() {
-    // Fetch the metadata and extract the field information.
-    Map<String, Email_Invalidator_Fields__mdt> emailFields = Email_Invalidator_Fields__mdt.getAll();
-    Map<String, Set<String>> objectsWithFields = getFieldDetails(emailFields);
+    Map<String, Set<String>> objectsWithFields = getConfiguredFields();
 
     // Create batches for each object
     // TODO: Protect against the 60 batch limit.

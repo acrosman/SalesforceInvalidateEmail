@@ -2,6 +2,7 @@
  * Utility class for retrieving Email Invalidator settings from custom metadata
  */
 public without sharing class InvalidateEmailSettings {
+  public static final String DEFAULT_INVALIDATION_TEXT = '.invalid';
   private static String invalidationText;
 
   /**
@@ -18,7 +19,7 @@ public without sharing class InvalidateEmailSettings {
           invalidationText = setting.Setting_Value__c;
         } else {
           // Fallback to default value if custom metadata is not found
-          invalidationText = '.invalid';
+          invalidationText = DEFAULT_INVALIDATION_TEXT;
           System.debug(
             'Warning: Invalidation_Text custom metadata not found, using default value: ' +
             invalidationText
@@ -26,7 +27,7 @@ public without sharing class InvalidateEmailSettings {
         }
       } catch (Exception e) {
         // Fallback to default value if there's any error
-        invalidationText = '.invalid';
+        invalidationText = DEFAULT_INVALIDATION_TEXT;
         System.debug(
           'Error retrieving invalidation text from custom metadata: ' +
             e.getMessage() +

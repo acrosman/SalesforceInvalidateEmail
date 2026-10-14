@@ -72,6 +72,12 @@ public with sharing class InvalidateEmailSettingsController {
             : '';
         }
 
+        // Show the value the batches will actually use, including the
+        // code-level default when the record is missing or blank.
+        if (settingName == 'Invalidation_Text' && String.isBlank(value)) {
+          value = InvalidateEmailSettings.getInvalidationText();
+        }
+
         settings.add(new SettingWrapper(settingName, label, value));
       }
 
