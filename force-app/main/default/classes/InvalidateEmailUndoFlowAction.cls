@@ -19,7 +19,7 @@ public with sharing class InvalidateEmailUndoFlowAction {
     EmailRestorationResponse response = new EmailRestorationResponse();
 
     try {
-      InvalidateEmailUndoBatch.restoreAllConfiguredEmails();
+      response.jobs = InvalidateEmailUndoBatch.restoreAllConfiguredEmails();
 
       response.success = true;
       response.message = 'Email restoration batch jobs started for all configured email fields.';
@@ -47,5 +47,10 @@ public with sharing class InvalidateEmailUndoFlowAction {
     @InvocableVariable(label='Message' description='Success or error message')
     @AuraEnabled
     public String message;
+
+    // Started job Ids mapped to the object each job processes. Not an
+    // InvocableVariable because Flow does not support maps.
+    @AuraEnabled
+    public Map<Id, String> jobs;
   }
 }

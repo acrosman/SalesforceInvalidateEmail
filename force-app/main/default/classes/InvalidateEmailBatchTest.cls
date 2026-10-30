@@ -92,9 +92,16 @@ private class InvalidateEmailBatchTest {
 
     Test.startTest();
 
-    InvalidateEmailBatch.invalidateAllConfiguredEmails();
+    Map<Id, String> jobs = InvalidateEmailBatch.invalidateAllConfiguredEmails();
 
     Test.stopTest();
+
+    Assert.areEqual(1, jobs.size(), 'Should start one job per object');
+    Assert.areEqual(
+      'Contact',
+      jobs.values()[0],
+      'Job should be mapped to its object'
+    );
 
     // Verify that Contact emails were invalidated
     String invalidationText = InvalidateEmailSettings.getInvalidationText();

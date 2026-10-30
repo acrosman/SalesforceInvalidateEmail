@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Published when the Email Invalidator starts batch jobs so the job status card can refresh.</description>
+    <isExposed>false</isExposed>
+    <lightningMessageFields>
+        <description>Map of started job Ids to the object each job processes.</description>
+        <fieldName>jobs</fieldName>
+    </lightningMessageFields>
+    <masterLabel>Email Invalidator Jobs</masterLabel>
+</LightningMessageChannel>

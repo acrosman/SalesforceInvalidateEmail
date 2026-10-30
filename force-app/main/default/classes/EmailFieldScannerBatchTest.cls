@@ -35,7 +35,7 @@ private class EmailFieldScannerBatchTest {
     Test.startTest();
 
     // Call the static method
-    EmailFieldScannerBatch.scanAllEmailFields();
+    Id jobId = EmailFieldScannerBatch.scanAllEmailFields();
 
     Test.stopTest();
 
@@ -47,6 +47,7 @@ private class EmailFieldScannerBatchTest {
     ];
 
     System.assertEquals(1, jobs.size(), 'Expected one batch job to be started');
+    System.assertEquals(jobs[0].Id, jobId, 'Expected the started job Id');
   }
 
   @IsTest

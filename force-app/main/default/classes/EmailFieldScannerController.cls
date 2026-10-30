@@ -9,7 +9,8 @@ public with sharing class EmailFieldScannerController {
     EmailScanResponse response = new EmailScanResponse();
 
     try {
-      EmailFieldScannerBatch.scanAllEmailFields();
+      Id jobId = EmailFieldScannerBatch.scanAllEmailFields();
+      response.jobs = new Map<Id, String>{ jobId => 'All Objects' };
 
       response.success = true;
       response.message = 'Email field scanning batch job started successfully. Results will be cached for your review instead of being deployed immediately.';
@@ -292,6 +293,10 @@ public with sharing class EmailFieldScannerController {
 
     @AuraEnabled
     public String message;
+
+    // Started job Ids mapped to what each job processes.
+    @AuraEnabled
+    public Map<Id, String> jobs;
   }
 
   // Response class for cached results

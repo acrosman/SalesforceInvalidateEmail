@@ -9,6 +9,12 @@
         </itemInstances>
         <itemInstances>
             <componentInstance>
+                <componentName>invalidateEmailJobStatus</componentName>
+                <identifier>c_invalidateEmailJobStatus</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentName>invalidateEmailSettings</componentName>
                 <identifier>c_invalidateEmailSettings</identifier>
             </componentInstance>

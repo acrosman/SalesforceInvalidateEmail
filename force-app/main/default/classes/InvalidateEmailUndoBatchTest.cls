@@ -100,9 +100,16 @@ private class InvalidateEmailUndoBatchTest {
 
     Test.startTest();
 
-    InvalidateEmailUndoBatch.restoreAllConfiguredEmails();
+    Map<Id, String> jobs = InvalidateEmailUndoBatch.restoreAllConfiguredEmails();
 
     Test.stopTest();
+
+    Assert.areEqual(1, jobs.size(), 'Should start one job per object');
+    Assert.areEqual(
+      'Contact',
+      jobs.values()[0],
+      'Job should be mapped to its object'
+    );
 
     // Verify that Contact emails were restored
     String invalidationText = InvalidateEmailSettings.getInvalidationText();
