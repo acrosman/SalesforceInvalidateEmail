@@ -47,10 +47,6 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
   public void execute(Database.BatchableContext context, List<SObject> scope) {
     List<SObject> recordsToUpdate = new List<SObject>();
     String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    Map<String, Integer> fieldLengths = InvalidateEmailBatch.getFieldLengths(
-      objectName,
-      fields
-    );
 
     for (SObject record : scope) {
       // Track changes per record so it is only added to the update list once,
@@ -60,20 +56,14 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
-          Integer maxLength = fieldLengths.get(emailField);
           if (
             String.isNotBlank(currentEmail) &&
-            InvalidateEmailBatch.isInvalidated(
-              currentEmail,
-              invalidationText,
-              maxLength
-            )
+            InvalidateEmailBatch.isInvalidated(currentEmail, invalidationText)
           ) {
             // Restore the email by removing the configured invalidation text suffix
             String restoredEmail = InvalidateEmailBatch.restoreValue(
               currentEmail,
-              invalidationText,
-              maxLength
+              invalidationText
             );
 
             record.put(emailField, restoredEmail);

@@ -199,22 +199,22 @@ private class InvalidateEmailUndoBatchTest {
 
     Assert.areEqual(
       'a@b.com',
-      InvalidateEmailBatch.restoreValue('a@b.com.invalid', '.invalid', 80),
+      InvalidateEmailBatch.restoreValue('a@b.com.invalid', '.invalid'),
       'The full text should be removed'
     );
     Assert.areEqual(
       fitsEmail,
-      InvalidateEmailBatch.restoreValue(fitsEmail + '.invalid', '.invalid', 80),
+      InvalidateEmailBatch.restoreValue(fitsEmail + '.invalid', '.invalid'),
       'The full text should be removed from emails at the limit'
     );
     Assert.areEqual(
       nearLimitEmail,
-      InvalidateEmailBatch.restoreValue(nearLimitEmail + '.in', '.invalid', 80),
+      InvalidateEmailBatch.restoreValue(nearLimitEmail + '.in', '.invalid'),
       'Part of the text left at the limit should be removed'
     );
     Assert.areEqual(
       'a@b.co.in',
-      InvalidateEmailBatch.restoreValue('a@b.co.in', '.invalid', 80),
+      InvalidateEmailBatch.restoreValue('a@b.co.in', '.invalid'),
       'Emails under the limit without the full text should be unchanged'
     );
   }
@@ -231,16 +231,14 @@ private class InvalidateEmailUndoBatchTest {
         LastName = 'NearLimit',
         Email = InvalidateEmailBatch.invalidateValue(
           nearLimitEmail,
-          invalidationText,
-          80
+          invalidationText
         )
       ),
       new Contact(
         LastName = 'AtLimit',
         Email = InvalidateEmailBatch.invalidateValue(
           atLimitEmail,
-          invalidationText,
-          80
+          invalidationText
         )
       )
     };

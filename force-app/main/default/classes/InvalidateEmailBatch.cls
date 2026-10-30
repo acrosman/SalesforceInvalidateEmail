@@ -1,4 +1,7 @@
 public without sharing class InvalidateEmailBatch implements Database.Batchable<SObject>, Database.Stateful {
+  // Email fields are limited to 80 characters.
+  public static final Integer EMAIL_FIELD_MAX_LENGTH = 80;
+
   private String objectName;
   private Set<String> fields;
   private Integer recordsProcessed = 0;
@@ -36,7 +39,6 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   public void execute(Database.BatchableContext context, List<SObject> scope) {
     List<SObject> recordsToUpdate = new List<SObject>();
     String invalidationText = InvalidateEmailSettings.getInvalidationText();
-    Map<String, Integer> fieldLengths = getFieldLengths(objectName, fields);
 
     for (SObject record : scope) {
       // Track changes per record so it is only added to the update list once,
@@ -46,16 +48,14 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
-          Integer maxLength = fieldLengths.get(emailField);
           if (
             String.isNotBlank(currentEmail) &&
-            !isInvalidated(currentEmail, invalidationText, maxLength)
+            !isInvalidated(currentEmail, invalidationText)
           ) {
             // Invalidate the email by appending the configured invalidation text
             String invalidatedEmail = invalidateValue(
               currentEmail,
-              invalidationText,
-              maxLength
+              invalidationText
             );
 
             record.put(emailField, invalidatedEmail);
@@ -149,64 +149,33 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     }
   }
 
-  // Email fields are limited to 80 characters. Used when a field's length
-  // can't be read from its describe.
-  public static final Integer DEFAULT_MAX_LENGTH = 80;
-
-  // Returns the maximum length of each field, keyed by field name.
-  public static Map<String, Integer> getFieldLengths(
-    String objectName,
-    Set<String> fields
-  ) {
-    Map<String, Integer> fieldLengths = new Map<String, Integer>();
-    Map<String, Schema.SObjectField> fieldMap = Schema.describeSObjects(
-        new List<String>{ objectName }
-      )[0]
-      .fields.getMap();
-
-    for (String f : fields) {
-      Integer maxLength = fieldMap.containsKey(f)
-        ? fieldMap.get(f).getDescribe().getLength()
-        : 0;
-      fieldLengths.put(f, maxLength > 0 ? maxLength : DEFAULT_MAX_LENGTH);
-    }
-    return fieldLengths;
-  }
-
   // Appends the invalidation text to a value while keeping it within the
-  // field's maximum length:
+  // email field's maximum length:
   //  - If the result fits, the text is simply appended.
   //  - If the value is shorter than the limit, the result is cut off at the
   //    limit. The original value is intact, so it can still be restored.
   //  - If the value is already at the limit, the value is shortened to make
   //    room for the full text. These values can NOT be restored.
-  public static String invalidateValue(
-    String value,
-    String invalidationText,
-    Integer maxLength
-  ) {
+  public static String invalidateValue(String value, String invalidationText) {
     String invalidated = value + invalidationText;
-    if (invalidated.length() <= maxLength) {
+    if (invalidated.length() <= EMAIL_FIELD_MAX_LENGTH) {
       return invalidated;
     }
-    if (value.length() < maxLength) {
-      return invalidated.left(maxLength);
+    if (value.length() < EMAIL_FIELD_MAX_LENGTH) {
+      return invalidated.left(EMAIL_FIELD_MAX_LENGTH);
     }
-    return value.left(Math.max(maxLength - invalidationText.length(), 0)) +
-      invalidationText;
+    return value.left(
+        Math.max(EMAIL_FIELD_MAX_LENGTH - invalidationText.length(), 0)
+      ) + invalidationText;
   }
 
   // Removes the invalidation text from a value, including the leading part of
   // the text left behind when invalidateValue cut the value off at the limit.
-  public static String restoreValue(
-    String value,
-    String invalidationText,
-    Integer maxLength
-  ) {
+  public static String restoreValue(String value, String invalidationText) {
     if (value.endsWith(invalidationText)) {
       return value.removeEnd(invalidationText);
     }
-    if (value.length() >= maxLength) {
+    if (value.length() >= EMAIL_FIELD_MAX_LENGTH) {
       return value.left(
         value.length() - getTruncatedOverlap(value, invalidationText)
       );
@@ -218,13 +187,9 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   // field's limit and ends with the start of the text. A valid address that is
   // exactly at the limit and happens to end with the start of the text (such
   // as '.in' for '.invalid') is indistinguishable from a cut off one.
-  public static Boolean isInvalidated(
-    String value,
-    String invalidationText,
-    Integer maxLength
-  ) {
+  public static Boolean isInvalidated(String value, String invalidationText) {
     return value.endsWith(invalidationText) ||
-      (value.length() >= maxLength &&
+      (value.length() >= EMAIL_FIELD_MAX_LENGTH &&
       getTruncatedOverlap(value, invalidationText) > 0);
   }
 

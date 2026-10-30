@@ -200,22 +200,22 @@ private class InvalidateEmailBatchTest {
 
     Assert.areEqual(
       'a@b.com.invalid',
-      InvalidateEmailBatch.invalidateValue(shortEmail, '.invalid', 80),
+      InvalidateEmailBatch.invalidateValue(shortEmail, '.invalid'),
       'Short emails should have the full text appended'
     );
     Assert.areEqual(
       fitsEmail + '.invalid',
-      InvalidateEmailBatch.invalidateValue(fitsEmail, '.invalid', 80),
+      InvalidateEmailBatch.invalidateValue(fitsEmail, '.invalid'),
       'Emails that fit exactly should have the full text appended'
     );
     Assert.areEqual(
       nearLimitEmail + '.in',
-      InvalidateEmailBatch.invalidateValue(nearLimitEmail, '.invalid', 80),
+      InvalidateEmailBatch.invalidateValue(nearLimitEmail, '.invalid'),
       'Emails under the limit should be cut off at the limit'
     );
     Assert.areEqual(
       atLimitEmail.left(72) + '.invalid',
-      InvalidateEmailBatch.invalidateValue(atLimitEmail, '.invalid', 80),
+      InvalidateEmailBatch.invalidateValue(atLimitEmail, '.invalid'),
       'Emails at the limit should be shortened to fit the full text'
     );
   }
@@ -227,39 +227,20 @@ private class InvalidateEmailBatchTest {
     );
 
     Assert.isTrue(
-      InvalidateEmailBatch.isInvalidated('a@b.com.invalid', '.invalid', 80),
+      InvalidateEmailBatch.isInvalidated('a@b.com.invalid', '.invalid'),
       'Emails ending with the full text are invalidated'
     );
     Assert.isTrue(
-      InvalidateEmailBatch.isInvalidated(
-        nearLimitEmail + '.in',
-        '.invalid',
-        80
-      ),
+      InvalidateEmailBatch.isInvalidated(nearLimitEmail + '.in', '.invalid'),
       'Emails at the limit ending with part of the text are invalidated'
     );
     Assert.isFalse(
-      InvalidateEmailBatch.isInvalidated('a@b.com', '.invalid', 80),
+      InvalidateEmailBatch.isInvalidated('a@b.com', '.invalid'),
       'Plain emails are not invalidated'
     );
     Assert.isFalse(
-      InvalidateEmailBatch.isInvalidated('a@b.co.in', '.invalid', 80),
+      InvalidateEmailBatch.isInvalidated('a@b.co.in', '.invalid'),
       'Emails under the limit ending with part of the text are not invalidated'
-    );
-  }
-
-  @isTest
-  static void testGetFieldLengths() {
-    Map<String, Integer> fieldLengths = InvalidateEmailBatch.getFieldLengths(
-      'Contact',
-      new Set<String>{ 'Email', 'Title' }
-    );
-
-    Assert.areEqual(80, fieldLengths.get('Email'), 'Email length');
-    Assert.areEqual(
-      Contact.Title.getDescribe().getLength(),
-      fieldLengths.get('Title'),
-      'Title length'
     );
   }
 
@@ -295,11 +276,7 @@ private class InvalidateEmailBatchTest {
     }
 
     Assert.areEqual(
-      InvalidateEmailBatch.invalidateValue(
-        nearLimitEmail,
-        invalidationText,
-        80
-      ),
+      InvalidateEmailBatch.invalidateValue(nearLimitEmail, invalidationText),
       emailsByName.get('NearLimit'),
       'Emails under the limit should be invalidated and cut off at the limit'
     );
@@ -315,8 +292,7 @@ private class InvalidateEmailBatchTest {
     String invalidationText = InvalidateEmailSettings.getInvalidationText();
     String truncatedEmail = InvalidateEmailBatch.invalidateValue(
       InvalidateEmailTestDataFactory.buildEmailOfLength(77),
-      invalidationText,
-      80
+      invalidationText
     );
     insert new Contact(LastName = 'Truncated', Email = truncatedEmail);
 
