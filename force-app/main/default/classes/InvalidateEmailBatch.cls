@@ -100,11 +100,9 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     System.debug('Records processed: ' + recordsProcessed);
     System.debug('Records updated: ' + recordsUpdated);
 
-    if (!errorCount.isEmpty()) {
+    if (errorCount > 0) {
       System.debug('Errors encountered: ' + errorCount);
-      for (String error : errorCount) {
-        System.debug('Error: ' + error);
-      }
+      System.debug('First Error: ' + firstError);
     }
 
     // Send completion email to the user who started the batch
@@ -132,14 +130,9 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         emailBody += 'Job Items Processed: ' + job.JobItemsProcessed + '\n';
         emailBody += 'Records Updated: ' + recordsUpdated + '\n';
 
-        if (job.NumberOfErrors > 0 || !errorCount > 0) {
+        if (job.NumberOfErrors > 0 || errorCount > 0) {
           emailBody += 'Number of Errors: ' + job.NumberOfErrors + '\n';
-          if (!errors.isEmpty()) {
-            emailBody += '\nDetailed Errors:\n';
-            for (String error : errors) {
-              emailBody += '- ' + error + '\n';
-            }
-          }
+          emailBody += 'First Error: ' + firstError;
         }
 
         email.setPlainTextBody(emailBody);
