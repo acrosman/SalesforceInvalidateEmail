@@ -164,11 +164,11 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     }
 
     // Invalidate the email address.
-    String invalidated = value + invalidationText;
+    String invalidated = source + invalidationText;
 
     // check to see if the invalidated text is longer than an email field can hold.
     // Truncate as needed.
-    if (invalidated > EMAIL_FIELD_MAX_LENGTH) {
+    if (invalidated.length() > EMAIL_FIELD_MAX_LENGTH) {
       invalidated = invalidated.left(EMAIL_FIELD_MAX_LENGTH);
     }
 
