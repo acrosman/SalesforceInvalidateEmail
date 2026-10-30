@@ -35,6 +35,8 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
 
   public void execute(Database.BatchableContext context, List<SObject> scope) {
     List<SObject> recordsToUpdate = new List<SObject>();
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    Map<String, Integer> fieldLengths = getFieldLengths(objectName, fields);
 
     for (SObject record : scope) {
       // Track changes per record so it is only added to the update list once,
@@ -44,13 +46,17 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
-          String invalidationText = InvalidateEmailSettings.getInvalidationText();
+          Integer maxLength = fieldLengths.get(emailField);
           if (
             String.isNotBlank(currentEmail) &&
-            !currentEmail.endsWith(invalidationText)
+            !isInvalidated(currentEmail, invalidationText, maxLength)
           ) {
             // Invalidate the email by appending the configured invalidation text
-            String invalidatedEmail = currentEmail + invalidationText;
+            String invalidatedEmail = invalidateValue(
+              currentEmail,
+              invalidationText,
+              maxLength
+            );
 
             record.put(emailField, invalidatedEmail);
             changed = true;
@@ -141,6 +147,103 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         System.debug('Error sending completion email: ' + e.getMessage());
       }
     }
+  }
+
+  // Email fields are limited to 80 characters. Used when a field's length
+  // can't be read from its describe.
+  public static final Integer DEFAULT_MAX_LENGTH = 80;
+
+  // Returns the maximum length of each field, keyed by field name.
+  public static Map<String, Integer> getFieldLengths(
+    String objectName,
+    Set<String> fields
+  ) {
+    Map<String, Integer> fieldLengths = new Map<String, Integer>();
+    Map<String, Schema.SObjectField> fieldMap = Schema.describeSObjects(
+        new List<String>{ objectName }
+      )[0]
+      .fields.getMap();
+
+    for (String f : fields) {
+      Integer maxLength = fieldMap.containsKey(f)
+        ? fieldMap.get(f).getDescribe().getLength()
+        : 0;
+      fieldLengths.put(f, maxLength > 0 ? maxLength : DEFAULT_MAX_LENGTH);
+    }
+    return fieldLengths;
+  }
+
+  // Appends the invalidation text to a value while keeping it within the
+  // field's maximum length:
+  //  - If the result fits, the text is simply appended.
+  //  - If the value is shorter than the limit, the result is cut off at the
+  //    limit. The original value is intact, so it can still be restored.
+  //  - If the value is already at the limit, the value is shortened to make
+  //    room for the full text. These values can NOT be restored.
+  public static String invalidateValue(
+    String value,
+    String invalidationText,
+    Integer maxLength
+  ) {
+    String invalidated = value + invalidationText;
+    if (invalidated.length() <= maxLength) {
+      return invalidated;
+    }
+    if (value.length() < maxLength) {
+      return invalidated.left(maxLength);
+    }
+    return value.left(Math.max(maxLength - invalidationText.length(), 0)) +
+      invalidationText;
+  }
+
+  // Removes the invalidation text from a value, including the leading part of
+  // the text left behind when invalidateValue cut the value off at the limit.
+  public static String restoreValue(
+    String value,
+    String invalidationText,
+    Integer maxLength
+  ) {
+    if (value.endsWith(invalidationText)) {
+      return value.removeEnd(invalidationText);
+    }
+    if (value.length() >= maxLength) {
+      return value.left(
+        value.length() - getTruncatedOverlap(value, invalidationText)
+      );
+    }
+    return value;
+  }
+
+  // Returns true when the value ends with the invalidation text, or is at the
+  // field's limit and ends with the start of the text. A valid address that is
+  // exactly at the limit and happens to end with the start of the text (such
+  // as '.in' for '.invalid') is indistinguishable from a cut off one.
+  public static Boolean isInvalidated(
+    String value,
+    String invalidationText,
+    Integer maxLength
+  ) {
+    return value.endsWith(invalidationText) ||
+      (value.length() >= maxLength &&
+      getTruncatedOverlap(value, invalidationText) > 0);
+  }
+
+  // Returns how many characters at the end of the value match the start of
+  // the invalidation text, preferring the longest match.
+  private static Integer getTruncatedOverlap(
+    String value,
+    String invalidationText
+  ) {
+    for (
+      Integer i = Math.min(invalidationText.length() - 1, value.length());
+      i > 0;
+      i--
+    ) {
+      if (value.endsWith(invalidationText.left(i))) {
+        return i;
+      }
+    }
+    return 0;
   }
 
   // Lets tests supply the object/field configuration so they don't depend on

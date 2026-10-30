@@ -191,6 +191,92 @@ private class InvalidateEmailUndoBatchTest {
   }
 
   @isTest
+  static void testRestoreValue() {
+    String nearLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(
+      77
+    );
+    String fitsEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(72);
+
+    Assert.areEqual(
+      'a@b.com',
+      InvalidateEmailBatch.restoreValue('a@b.com.invalid', '.invalid', 80),
+      'The full text should be removed'
+    );
+    Assert.areEqual(
+      fitsEmail,
+      InvalidateEmailBatch.restoreValue(fitsEmail + '.invalid', '.invalid', 80),
+      'The full text should be removed from emails at the limit'
+    );
+    Assert.areEqual(
+      nearLimitEmail,
+      InvalidateEmailBatch.restoreValue(nearLimitEmail + '.in', '.invalid', 80),
+      'Part of the text left at the limit should be removed'
+    );
+    Assert.areEqual(
+      'a@b.co.in',
+      InvalidateEmailBatch.restoreValue('a@b.co.in', '.invalid', 80),
+      'Emails under the limit without the full text should be unchanged'
+    );
+  }
+
+  @isTest
+  static void testBatchRestoresTruncatedEmails() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String nearLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(
+      77
+    );
+    String atLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(80);
+    insert new List<Contact>{
+      new Contact(
+        LastName = 'NearLimit',
+        Email = InvalidateEmailBatch.invalidateValue(
+          nearLimitEmail,
+          invalidationText,
+          80
+        )
+      ),
+      new Contact(
+        LastName = 'AtLimit',
+        Email = InvalidateEmailBatch.invalidateValue(
+          atLimitEmail,
+          invalidationText,
+          80
+        )
+      )
+    };
+
+    Test.startTest();
+
+    InvalidateEmailUndoBatch batch = new InvalidateEmailUndoBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom
+
+    Test.stopTest();
+
+    Map<String, String> emailsByName = new Map<String, String>();
+    for (Contact contact : [
+      SELECT LastName, Email
+      FROM Contact
+      WHERE LastName IN ('NearLimit', 'AtLimit')
+    ]) {
+      emailsByName.put(contact.LastName, contact.Email);
+    }
+
+    Assert.areEqual(
+      nearLimitEmail,
+      emailsByName.get('NearLimit'),
+      'Emails cut off at the limit should be fully restored'
+    );
+    Assert.areEqual(
+      atLimitEmail.left(80 - invalidationText.length()),
+      emailsByName.get('AtLimit'),
+      'Emails shortened to fit the text can only be partly restored'
+    );
+  }
+
+  @isTest
   static void testBatchNoRecords() {
     // Delete all the contacts from Setup
     List<Contact> contacts = [SELECT Id FROM Contact];
