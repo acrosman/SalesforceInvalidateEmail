@@ -1,10 +1,19 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { publish, MessageContext } from 'lightning/messageService';
+import JOBS_CHANNEL from '@salesforce/messageChannel/Email_Invalidator_Jobs__c';
 import invalidateAllConfiguredEmails from '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura';
 import restoreAllConfiguredEmails from '@salesforce/apex/InvalidateEmailUndoFlowAction.restoreAllConfiguredEmailsAura';
 import startEmailFieldScanAura from '@salesforce/apex/EmailFieldScannerController.startEmailFieldScanAura';
 
 export default class InvalidateEmail extends LightningElement {
+  @wire(MessageContext)
+  messageContext;
+
+  // Let the job status card know which jobs were just started.
+  publishJobsStarted(jobs) {
+    publish(this.messageContext, JOBS_CHANNEL, { jobs: jobs || {} });
+  }
 
   async handleInvalidateClick() {
     // Call the AuraEnabled method to start the batch process
@@ -14,6 +23,8 @@ export default class InvalidateEmail extends LightningElement {
       console.log("Response from function: ");
       console.log(response);
       if (response.success) {
+        this.publishJobsStarted(response.jobs);
+
         // Show success toast
         this.dispatchEvent(
           new ShowToastEvent({
@@ -52,6 +63,8 @@ export default class InvalidateEmail extends LightningElement {
       console.log("Response from restore function: ");
       console.log(response);
       if (response.success) {
+        this.publishJobsStarted(response.jobs);
+
         // Show success toast
         this.dispatchEvent(
           new ShowToastEvent({
@@ -90,6 +103,8 @@ export default class InvalidateEmail extends LightningElement {
       console.log("Response from email scan function: ");
       console.log(response);
       if (response.success) {
+        this.publishJobsStarted(response.jobs);
+
         // Show success toast
         this.dispatchEvent(
           new ShowToastEvent({

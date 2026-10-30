@@ -17,6 +17,11 @@ private class EmailFieldScannerControllerTest {
       ),
       'Expected success message'
     );
+    System.assertEquals(
+      1,
+      response.jobs.size(),
+      'Expected the started job in the response'
+    );
 
     // Verify a batch job was started
     List<AsyncApexJob> jobs = [

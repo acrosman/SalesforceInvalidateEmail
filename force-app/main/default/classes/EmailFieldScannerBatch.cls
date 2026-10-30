@@ -572,9 +572,10 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
     }
   }
 
-  // Static method to start the email field scanning process
-  public static void scanAllEmailFields() {
+  // Static method to start the email field scanning process.
+  // Returns the Id of the started batch job.
+  public static Id scanAllEmailFields() {
     EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
-    Database.executeBatch(batch, 10); // Process 10 objects at a time
+    return Database.executeBatch(batch, 10); // Process 10 objects at a time
   }
 }

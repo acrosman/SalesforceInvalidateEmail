@@ -156,9 +156,11 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     return getFieldDetails(Email_Invalidator_Fields__mdt.getAll());
   }
 
-  // Static method to process all configured email fields from custom metadata
-  public static void invalidateAllConfiguredEmails() {
+  // Static method to process all configured email fields from custom metadata.
+  // Returns the started job Ids mapped to the object each job processes.
+  public static Map<Id, String> invalidateAllConfiguredEmails() {
     Map<String, Set<String>> objectsWithFields = getConfiguredFields();
+    Map<Id, String> jobObjects = new Map<Id, String>();
 
     // Create batches for each object
     // TODO: Protect against the 60 batch limit.
@@ -167,8 +169,10 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         objectName,
         objectsWithFields.get(objectName)
       );
-      Database.executeBatch(batch, 200);
+      jobObjects.put(Database.executeBatch(batch, 200), objectName);
     }
+
+    return jobObjects;
   }
 
   // Helper method to extract the object and field information

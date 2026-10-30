@@ -2,16 +2,12 @@ import { createElement } from '@lwc/engine-dom';
 import InvalidateEmail from 'c/invalidateEmail';
 import invalidateAllConfiguredEmails from '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura';
 import startEmailFieldScanAura from '@salesforce/apex/EmailFieldScannerController.startEmailFieldScanAura';
+import { publish } from 'lightning/messageService';
 
 // Mock the Apex methods
 jest.mock(
     '@salesforce/apex/InvalidateEmailFlowAction.invalidateAllConfiguredEmailsAura',
-    () => {
-        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
-        return {
-            default: createApexTestWireAdapter(jest.fn())
-        };
-    },
+    () => ({ default: jest.fn() }),
     { virtual: true }
 );
 
@@ -23,6 +19,12 @@ jest.mock(
             default: createApexTestWireAdapter(jest.fn())
         };
     },
+    { virtual: true }
+);
+
+jest.mock(
+    '@salesforce/messageChannel/Email_Invalidator_Jobs__c',
+    () => ({ default: 'Email_Invalidator_Jobs__c' }),
     { virtual: true }
 );
 
@@ -89,6 +91,29 @@ describe('c-invalidate-email', () => {
 
         // Assert
         expect(invalidateAllConfiguredEmails).toHaveBeenCalledTimes(1);
+    });
+
+    it('publishes the started jobs so the status card can refresh', async () => {
+        // Arrange
+        const jobs = { '707000000000001AAA': 'Contact' };
+        invalidateAllConfiguredEmails.mockResolvedValue({
+            success: true,
+            message: 'Email invalidation batch jobs started for all configured email fields.',
+            jobs
+        });
+
+        const element = createElement('c-invalidate-email', {
+            is: InvalidateEmail
+        });
+        document.body.appendChild(element);
+
+        // Act
+        element.shadowRoot.querySelectorAll('lightning-button')[0].click();
+        await new Promise(process.nextTick);
+
+        // Assert
+        expect(publish).toHaveBeenCalledTimes(1);
+        expect(publish.mock.calls[0][2]).toEqual({ jobs });
     });
 
     it('executes restore button click without errors (placeholder functionality)', async () => {

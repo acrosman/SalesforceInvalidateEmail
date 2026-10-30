@@ -156,10 +156,12 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
     }
   }
 
-  // Static method to process all configured email fields from custom metadata
-  public static void restoreAllConfiguredEmails() {
+  // Static method to process all configured email fields from custom metadata.
+  // Returns the started job Ids mapped to the object each job processes.
+  public static Map<Id, String> restoreAllConfiguredEmails() {
     // Fetch the field information using the shared method
     Map<String, Set<String>> objectsWithFields = InvalidateEmailBatch.getConfiguredFields();
+    Map<Id, String> jobObjects = new Map<Id, String>();
 
     // Create batches for each object
     for (String objectName : objectsWithFields.keySet()) {
@@ -167,7 +169,9 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
         objectName,
         objectsWithFields.get(objectName)
       );
-      Database.executeBatch(batch, 200);
+      jobObjects.put(Database.executeBatch(batch, 200), objectName);
     }
+
+    return jobObjects;
   }
 }

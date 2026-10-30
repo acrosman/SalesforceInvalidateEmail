@@ -91,6 +91,12 @@ private class InvalidateEmailUndoFlowActionTest {
 
     Test.stopTest();
 
+    Assert.areEqual(
+      new Set<String>{ 'Contact' },
+      new Set<String>(response.jobs.values()),
+      'Response should map started jobs to their objects'
+    );
+
     // Verify response
     Assert.isInstanceOfType(
       response,
