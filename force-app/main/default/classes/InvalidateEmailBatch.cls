@@ -3,7 +3,8 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   private Set<String> fields;
   private Integer recordsProcessed = 0;
   private Integer recordsUpdated = 0;
-  private List<String> errors = new List<String>();
+  private Integer errorCount = 0;
+  private String firstError;
 
   // Constructor for processing a specific object and field
   public InvalidateEmailBatch(String objectName, Set<String> fields) {
@@ -55,9 +56,10 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
             changed = true;
           }
         } catch (Exception e) {
-          errors.add(
-            'Error processing record ' + record.Id + ': ' + e.getMessage()
-          );
+          errorCount++;
+          if (errorCount == 1) {
+            firstError = e.getMessage();
+          }
           System.debug('Error processing record: ' + e.getMessage());
         }
       }
@@ -76,17 +78,18 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
             recordsUpdated++;
           } else {
             for (Database.Error error : results[i].getErrors()) {
-              errors.add(
-                'Error updating record ' +
-                  recordsToUpdate[i].Id +
-                  ': ' +
-                  error.getMessage()
-              );
+              errorCount++;
+              if (errorCount == 1) {
+                firstError = error.getMessage();
+              }
             }
           }
         }
       } catch (Exception e) {
-        errors.add('Batch update error: ' + e.getMessage());
+        errorCount++;
+        if (errorCount == 1) {
+          firstError = e.getMessage();
+        }
         System.debug('Batch update error: ' + e.getMessage());
       }
     }
@@ -97,9 +100,9 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     System.debug('Records processed: ' + recordsProcessed);
     System.debug('Records updated: ' + recordsUpdated);
 
-    if (!errors.isEmpty()) {
-      System.debug('Errors encountered: ' + errors.size());
-      for (String error : errors) {
+    if (!errorCount.isEmpty()) {
+      System.debug('Errors encountered: ' + errorCount);
+      for (String error : errorCount) {
         System.debug('Error: ' + error);
       }
     }
@@ -129,7 +132,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
         emailBody += 'Job Items Processed: ' + job.JobItemsProcessed + '\n';
         emailBody += 'Records Updated: ' + recordsUpdated + '\n';
 
-        if (job.NumberOfErrors > 0 || !errors.isEmpty()) {
+        if (job.NumberOfErrors > 0 || !errorCount > 0) {
           emailBody += 'Number of Errors: ' + job.NumberOfErrors + '\n';
           if (!errors.isEmpty()) {
             emailBody += '\nDetailed Errors:\n';
@@ -188,7 +191,7 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
     List<String> fieldDurableIds = new List<String>();
 
     // Prep the map we'll return with object names as keys, and extra
-    // the Durableids from the metadata to query in one shot.
+    // the Durable Ids from the metadata to query in one shot.
     for (String invalidatorKey : fieldMetaList.keySet()) {
       currentField = fieldMetaList.get(invalidatorKey);
 
