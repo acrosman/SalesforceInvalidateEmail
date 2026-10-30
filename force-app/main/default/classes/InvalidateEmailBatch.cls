@@ -157,16 +157,22 @@ public without sharing class InvalidateEmailBatch implements Database.Batchable<
   //  - If the value is already at the limit, the value is shortened to make
   //    room for the full text. These values can NOT be restored.
   public static String invalidateValue(String value, String invalidationText) {
+    String source = value;
+    // Check to see if the email address is at the length limit, cut off needed space.
+    if (source.length() == EMAIL_FIELD_MAX_LENGTH) {
+      source = source.left(EMAIL_FIELD_MAX_LENGTH - invalidationText.length());
+    }
+
+    // Invalidate the email address.
     String invalidated = value + invalidationText;
-    if (invalidated.length() <= EMAIL_FIELD_MAX_LENGTH) {
-      return invalidated;
+
+    // check to see if the invalidated text is longer than an email field can hold.
+    // Truncate as needed.
+    if (invalidated > EMAIL_FIELD_MAX_LENGTH) {
+      invalidated = invalidated.left(EMAIL_FIELD_MAX_LENGTH);
     }
-    if (value.length() < EMAIL_FIELD_MAX_LENGTH) {
-      return invalidated.left(EMAIL_FIELD_MAX_LENGTH);
-    }
-    return value.left(
-        Math.max(EMAIL_FIELD_MAX_LENGTH - invalidationText.length(), 0)
-      ) + invalidationText;
+
+    return invalidated;
   }
 
   // Removes the invalidation text from a value, including the leading part of
