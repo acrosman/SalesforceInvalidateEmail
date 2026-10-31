@@ -119,9 +119,6 @@ The Apex job signs in to the project's Dev Hub using the JWT bearer flow and an 
 - `SF_JWT_KEY`: the private key matching the certificate uploaded to the External Client App.
 - `SF_USERNAME`: the Dev Hub user the workflow signs in as.
 
-## Planned Features
-
-- Scan for Email Fields: It would be helpful to have a process that scans the org for email fields and adds custom metadata records for those fields to the system.
-- Un-Invalidate Fields: Adding `.invalid` is helpful. It would also be nice to easily remove it again under some conditions.
+## Suggestions
 
 Suggestions welcome. Please create a new [Issue](https://github.com/acrosman/SalesforceInvalidateEmail/issues) and submit your ideas.
