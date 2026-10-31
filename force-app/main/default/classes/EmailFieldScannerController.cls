@@ -35,60 +35,23 @@ public with sharing class EmailFieldScannerController {
     CachedResultsResponse response = new CachedResultsResponse();
 
     try {
-      // Get the specific cached scan results record directly
-
-      Email_Invalidator_Cache__mdt cacheRecord = [
+      // Get the specific cached scan results record directly. The record
+      // doesn't exist until the first scan finishes.
+      List<Email_Invalidator_Cache__mdt> cacheRecords = [
         SELECT QualifiedApiName, Cached_Value__c, SystemModstamp
         FROM Email_Invalidator_Cache__mdt
         WHERE DeveloperName = 'Field_Scan'
+        LIMIT 1
       ];
 
-      if (
-        cacheRecord != null && String.isNotBlank(cacheRecord.Cached_Value__c)
-      ) {
-        System.debug('Cached Data: ' + cacheRecord.Cached_Value__c);
-        // Parse the JSON payload
-        Map<String, Object> cacheData = (Map<String, Object>) JSON.deserializeUntyped(
-          cacheRecord.Cached_Value__c
-        );
-
-        response.success = true;
-        response.scanDate = (String) cacheData.get('scanDate');
-        response.lastModifiedDate = cacheRecord.SystemModstamp;
-        response.totalObjectsScanned = (Integer) cacheData.get(
-          'totalObjectsScanned'
-        );
-        response.totalEmailFieldsFound = (Integer) cacheData.get(
-          'totalEmailFieldsFound'
-        );
-        response.existingFieldsSkipped = (Integer) cacheData.get(
-          'existingFieldsSkipped'
-        );
-
-        // Convert the cached fields to a more usable format
-        List<Object> cachedFields = (List<Object>) cacheData.get(
-          'newEmailFields'
-        );
-        response.newEmailFields = new List<CachedEmailField>();
-
-        for (Object fieldObj : cachedFields) {
-          Map<String, Object> fieldData = (Map<String, Object>) fieldObj;
-          CachedEmailField field = new CachedEmailField();
-          field.objectName = (String) fieldData.get('objectName');
-          field.fieldName = (String) fieldData.get('fieldName');
-          field.fieldLabel = (String) fieldData.get('fieldLabel');
-          field.discoveredDate = (String) fieldData.get('discoveredDate');
-          field.selected = false; // Default to not selected
-          field.uniqueKey = field.objectName + '.' + field.fieldName;
-          response.newEmailFields.add(field);
-        }
-
-        response.message = 'Cached scan results loaded successfully';
-      } else {
+      if (cacheRecords.isEmpty()) {
         response.success = false;
-        response.message = cacheRecord == null
-          ? 'No cached scan results found. Please run a scan first.'
-          : 'Cache record exists but contains no data';
+        response.message = 'No cached scan results found. Please run a scan first.';
+      } else {
+        response = parseCachedScanResults(
+          cacheRecords[0].Cached_Value__c,
+          cacheRecords[0].SystemModstamp
+        );
       }
     } catch (Exception e) {
       response.success = false;
@@ -96,6 +59,69 @@ public with sharing class EmailFieldScannerController {
       System.debug('Error in getCachedScanResults: ' + e.getMessage());
     }
 
+    return response;
+  }
+
+  /**
+   * Builds the scan results response from a cache record's JSON payload.
+   * Separate from the query so tests can supply a payload, since they can't
+   * insert custom metadata records.
+   * @param cachedValue The cache record's Cached_Value__c JSON
+   * @param lastModifiedDate When the cache record was last written
+   * @return CachedResultsResponse containing the parsed scan results
+   */
+  @TestVisible
+  private static CachedResultsResponse parseCachedScanResults(
+    String cachedValue,
+    DateTime lastModifiedDate
+  ) {
+    CachedResultsResponse response = new CachedResultsResponse();
+
+    if (String.isBlank(cachedValue)) {
+      response.success = false;
+      response.message = 'Cache record exists but contains no data';
+      return response;
+    }
+
+    System.debug('Cached Data: ' + cachedValue);
+    // Parse the JSON payload
+    Map<String, Object> cacheData = (Map<String, Object>) JSON.deserializeUntyped(
+      cachedValue
+    );
+
+    response.success = true;
+    response.scanDate = (String) cacheData.get('scanDate');
+    response.lastModifiedDate = lastModifiedDate;
+    response.totalObjectsScanned = (Integer) cacheData.get(
+      'totalObjectsScanned'
+    );
+    response.totalEmailFieldsFound = (Integer) cacheData.get(
+      'totalEmailFieldsFound'
+    );
+    response.existingFieldsSkipped = (Integer) cacheData.get(
+      'existingFieldsSkipped'
+    );
+
+    // Convert the cached fields to a more usable format. A cleared cache
+    // has no field list.
+    List<Object> cachedFields = (List<Object>) cacheData.get('newEmailFields');
+    response.newEmailFields = new List<CachedEmailField>();
+
+    if (cachedFields != null) {
+      for (Object fieldObj : cachedFields) {
+        Map<String, Object> fieldData = (Map<String, Object>) fieldObj;
+        CachedEmailField field = new CachedEmailField();
+        field.objectName = (String) fieldData.get('objectName');
+        field.fieldName = (String) fieldData.get('fieldName');
+        field.fieldLabel = (String) fieldData.get('fieldLabel');
+        field.discoveredDate = (String) fieldData.get('discoveredDate');
+        field.selected = false; // Default to not selected
+        field.uniqueKey = field.objectName + '.' + field.fieldName;
+        response.newEmailFields.add(field);
+      }
+    }
+
+    response.message = 'Cached scan results loaded successfully';
     return response;
   }
 
@@ -243,6 +269,7 @@ public with sharing class EmailFieldScannerController {
   /**
    * Generates a unique metadata record name for deployment
    */
+  @TestVisible
   private static String generateUniqueMetadataRecordName(
     String objectName,
     String fieldName,

@@ -217,6 +217,47 @@ private class EmailFieldScannerBatchTest {
   }
 
   @IsTest
+  static void testGenerateMetadataRecordNameTruncatesLongNames() {
+    EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
+
+    Test.startTest();
+
+    // Long names are cut so the object and field parts share the space
+    String result1 = batch.generateMetadataRecordName(
+      'Very_Long_Object_Name_For_Testing__c',
+      'Secondary_Email_Address__c'
+    );
+
+    // The Field_ prefix for a numeric start leaves less room
+    String result2 = batch.generateMetadataRecordName(
+      '1Very_Long_Object_Name__c',
+      'Secondary_Email_Address__c'
+    );
+
+    // A short object name gives the rest of the space to the field
+    String result3 = batch.generateMetadataRecordName(
+      'AB',
+      'An_Extremely_Long_Secondary_Email_Address_Field__c'
+    );
+
+    // A suffix added for uniqueness still fits within 40 characters
+    Set<String> usedNames = new Set<String>{ result1 };
+    String result4 = batch.generateUniqueMetadataRecordName(
+      'Very_Long_Object_Name_For_Testing__c',
+      'Secondary_Email_Address__c',
+      usedNames
+    );
+
+    Test.stopTest();
+
+    Assert.areEqual('Very_Long_Object_Na_Secondary_Email_Add', result1);
+    Assert.areEqual('Field_1Very_Long_Obj_Secondary_Ema', result2);
+    Assert.areEqual('AB_An_Extremely_Long_Secondary_Email_Ad', result3);
+    Assert.areEqual('Very_Long_Object_Na_Secondary_Email_Ad_1', result4);
+    Assert.isTrue(usedNames.contains(result4), 'Name should be marked used');
+  }
+
+  @IsTest
   static void testSendCompletionEmail() {
     EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
     batch.emailFieldsFound = new List<EmailFieldScannerBatch.EmailFieldInfo>();

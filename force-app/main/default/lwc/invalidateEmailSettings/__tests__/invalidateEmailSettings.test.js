@@ -1,5 +1,6 @@
-import { createElement } from 'lwc';
+import { createElement } from '@lwc/engine-dom';
 import InvalidateEmailSettings from 'c/invalidateEmailSettings';
+import { refreshApex } from '@salesforce/apex';
 import getCurrentSettings from '@salesforce/apex/InvalidateEmailSettingsController.getCurrentSettings';
 import saveSettings from '@salesforce/apex/InvalidateEmailSettingsController.saveSettings';
 
@@ -17,13 +18,78 @@ jest.mock(
 
 jest.mock(
   '@salesforce/apex/InvalidateEmailSettingsController.saveSettings',
-  () => {
-    return {
-      default: jest.fn()
-    };
-  },
+  () => ({ default: jest.fn() }),
   { virtual: true }
 );
+
+jest.mock(
+  '@salesforce/apex',
+  () => ({ refreshApex: jest.fn(() => Promise.resolve()) }),
+  { virtual: true }
+);
+
+// The default toast stub drops its parameters, so keep them on the event detail
+jest.mock('lightning/platformShowToastEvent', () => ({
+  ShowToastEvent: class extends CustomEvent {
+    constructor(params) {
+      super('lightning__showtoast', { detail: params, bubbles: true, composed: true });
+    }
+  }
+}));
+
+const MOCK_SETTINGS = {
+  success: true,
+  message: 'Settings loaded successfully',
+  settings: [
+    {
+      name: 'Invalidation_Text',
+      label: 'Invalidation Text',
+      value: '.invalid'
+    },
+    {
+      name: 'Batch_Size',
+      label: 'Batch Size',
+      value: '200'
+    }
+  ]
+};
+
+// Resolve pending promises so async handlers finish and the DOM re-renders
+const flushPromises = async () => {
+  for (let i = 0; i < 5; i++) {
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.resolve();
+  }
+};
+
+const createComponent = async (settings = MOCK_SETTINGS) => {
+  const element = createElement('c-invalidate-email-settings', {
+    is: InvalidateEmailSettings
+  });
+  element.toasts = [];
+  element.addEventListener('lightning__showtoast', (event) => element.toasts.push(event.detail));
+  document.body.appendChild(element);
+  if (settings) {
+    getCurrentSettings.emit(settings);
+  }
+  await flushPromises();
+  return element;
+};
+
+const getButton = (element, label) =>
+  Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
+    (button) => button.label === label
+  );
+
+const getInput = (element, name) =>
+  element.shadowRoot.querySelector(`lightning-input[data-setting="${name}"]`);
+
+const changeInput = async (element, name, value) => {
+  const input = getInput(element, name);
+  input.value = value;
+  input.dispatchEvent(new CustomEvent('change'));
+  await flushPromises();
+};
 
 describe('c-invalidate-email-settings', () => {
   afterEach(() => {
@@ -31,143 +97,131 @@ describe('c-invalidate-email-settings', () => {
     while (document.body.firstChild) {
       document.body.removeChild(document.body.firstChild);
     }
-    // Clear all jest mocks
     jest.clearAllMocks();
   });
 
-  it('renders correctly with default settings', async () => {
-    const element = createElement('c-invalidate-email-settings', {
-      is: InvalidateEmailSettings
-    });
+  it('renders an input for each setting with the buttons disabled', async () => {
+    const element = await createComponent();
 
-    // Mock the wire adapter to return test data
-    const mockSettings = {
-      success: true,
-      message: 'Settings loaded successfully',
-      settings: [
-        {
-          name: 'Invalidation_Text',
-          label: 'Invalidation Text',
-          value: '.invalid',
-          isModified: false
-        }
-      ]
-    };
-
-    // Emit data from the wire adapter
-    getCurrentSettings.emit(mockSettings);
-
-    document.body.appendChild(element);
-
-    // Wait for any asynchronous DOM updates
-    await Promise.resolve();
-
-    // Verify the component renders
-    const card = element.shadowRoot.querySelector('lightning-card');
-    expect(card).toBeTruthy();
-    expect(card.title).toBe('Email Invalidator Settings');
-
-    // Verify the input field is rendered
-    const input = element.shadowRoot.querySelector('lightning-input');
-    expect(input).toBeTruthy();
-    expect(input.value).toBe('.invalid');
+    const inputs = element.shadowRoot.querySelectorAll('lightning-input');
+    expect(Array.from(inputs).map((input) => input.value)).toEqual(['.invalid', '200']);
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(true);
+    expect(getButton(element, 'Reset').disabled).toBe(true);
+    expect(element.shadowRoot.querySelector('.slds-text-color_success')).toBeNull();
   });
 
-  it('handles input changes correctly', async () => {
-    const element = createElement('c-invalidate-email-settings', {
-      is: InvalidateEmailSettings
-    });
+  it('shows an error toast when Apex reports the settings could not load', async () => {
+    const element = await createComponent({ success: false, message: 'No settings record' });
 
-    const mockSettings = {
-      success: true,
-      message: 'Settings loaded successfully',
-      settings: [
-        {
-          name: 'Invalidation_Text',
-          label: 'Invalidation Text',
-          value: '.invalid',
-          isModified: false
-        }
-      ]
-    };
-
-    getCurrentSettings.emit(mockSettings);
-    document.body.appendChild(element);
-    await Promise.resolve();
-
-    // Simulate input change
-    const input = element.shadowRoot.querySelector('lightning-input');
-    input.value = '.test';
-    input.dispatchEvent(new CustomEvent('change', {
-      detail: { value: '.test' }
-    }));
-
-    await Promise.resolve();
-
-    // Verify buttons are enabled after modification
-    const saveButton = element.shadowRoot.querySelector('lightning-button[label="Save & Deploy"]');
-    const resetButton = element.shadowRoot.querySelector('lightning-button[label="Reset"]');
-
-    expect(saveButton.disabled).toBe(false);
-    expect(resetButton.disabled).toBe(false);
+    expect(element.shadowRoot.querySelectorAll('lightning-input')).toHaveLength(0);
+    expect(element.toasts).toEqual([
+      { title: 'Error', message: 'No settings record', variant: 'error' }
+    ]);
   });
 
-  it('handles save operation', async () => {
-    const element = createElement('c-invalidate-email-settings', {
-      is: InvalidateEmailSettings
-    });
+  it('shows an error toast when the wire returns an error', async () => {
+    const element = await createComponent(null);
 
-    const mockSettings = {
-      success: true,
-      message: 'Settings loaded successfully',
-      settings: [
-        {
-          name: 'Invalidation_Text',
-          label: 'Invalidation Text',
-          value: '.invalid',
-          isModified: true
-        }
-      ]
-    };
+    getCurrentSettings.error({ message: 'Insufficient access' });
+    await flushPromises();
 
-    getCurrentSettings.emit(mockSettings);
-    document.body.appendChild(element);
-    await Promise.resolve();
-
-    // Mock the save response
-    saveSettings.mockResolvedValue({
-      success: true,
-      message: 'Settings deployment initiated successfully. Changes will be applied automatically when deployment completes.'
-    });
-
-    // Click save button
-    const saveButton = element.shadowRoot.querySelector('lightning-button[label="Save & Deploy"]');
-    saveButton.click();
-
-    await Promise.resolve();
-
-    // Verify save method was called
-    expect(saveSettings).toHaveBeenCalled();
+    expect(element.toasts).toEqual([
+      { title: 'Error', message: 'Failed to load settings: Insufficient access', variant: 'error' }
+    ]);
   });
 
-  it('displays error when settings fail to load', async () => {
-    const element = createElement('c-invalidate-email-settings', {
-      is: InvalidateEmailSettings
-    });
+  it('marks an edited setting as modified and enables the buttons', async () => {
+    const element = await createComponent();
 
-    // Mock error response
-    const mockError = {
-      success: false,
-      message: 'Failed to load settings'
-    };
+    await changeInput(element, 'Invalidation_Text', '.test');
 
-    getCurrentSettings.emit(mockError);
-    document.body.appendChild(element);
-    await Promise.resolve();
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(false);
+    expect(getButton(element, 'Reset').disabled).toBe(false);
+    expect(element.shadowRoot.querySelectorAll('.slds-text-color_success')).toHaveLength(1);
+  });
 
-    // The component should handle the error gracefully
-    // (specific error handling would depend on implementation details)
-    const card = element.shadowRoot.querySelector('lightning-card');
-    expect(card).toBeTruthy();
+  it('saves the edited settings and refreshes the wire', async () => {
+    saveSettings.mockResolvedValue({ success: true, message: 'Settings deployment initiated' });
+    const element = await createComponent();
+    await changeInput(element, 'Invalidation_Text', '.test');
+
+    getButton(element, 'Save & Deploy').click();
+    await flushPromises();
+
+    expect(saveSettings).toHaveBeenCalledTimes(1);
+    const saved = JSON.parse(saveSettings.mock.calls[0][0].settingsJson);
+    expect(saved).toEqual([
+      { ...MOCK_SETTINGS.settings[0], value: '.test', isModified: true },
+      { ...MOCK_SETTINGS.settings[1], isModified: false }
+    ]);
+    expect(element.toasts).toEqual([
+      { title: 'Success', message: 'Settings deployment initiated', variant: 'success' }
+    ]);
+    expect(refreshApex).toHaveBeenCalledWith(
+      expect.objectContaining({ data: MOCK_SETTINGS })
+    );
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(true);
+    expect(element.shadowRoot.querySelector('.slds-text-color_success')).toBeNull();
+  });
+
+  it('shows the deploying message while the save is in progress', async () => {
+    saveSettings.mockReturnValue(new Promise(() => {}));
+    const element = await createComponent();
+    await changeInput(element, 'Invalidation_Text', '.test');
+
+    getButton(element, 'Save & Deploy').click();
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector('.slds-alert_info').textContent).toContain(
+      'Deploying settings...'
+    );
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(true);
+    expect(getButton(element, 'Reset').disabled).toBe(true);
+  });
+
+  it('keeps the edits when Apex reports the save failed', async () => {
+    saveSettings.mockResolvedValue({ success: false, message: 'Value is required' });
+    const element = await createComponent();
+    await changeInput(element, 'Invalidation_Text', '.test');
+
+    getButton(element, 'Save & Deploy').click();
+    await flushPromises();
+
+    expect(element.toasts).toEqual([
+      { title: 'Error', message: 'Value is required', variant: 'error' }
+    ]);
+    expect(refreshApex).not.toHaveBeenCalled();
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(false);
+  });
+
+  it('shows an error toast when the save call throws', async () => {
+    saveSettings.mockRejectedValue({ body: { message: 'Metadata API disabled' } });
+    const element = await createComponent();
+    await changeInput(element, 'Invalidation_Text', '.test');
+
+    getButton(element, 'Save & Deploy').click();
+    await flushPromises();
+
+    expect(element.toasts).toEqual([
+      {
+        title: 'Error',
+        message: 'Failed to save settings: Metadata API disabled',
+        variant: 'error'
+      }
+    ]);
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(false);
+  });
+
+  it('restores the loaded values on reset', async () => {
+    const element = await createComponent();
+    await changeInput(element, 'Invalidation_Text', '.test');
+
+    getButton(element, 'Reset').click();
+    await flushPromises();
+
+    expect(getInput(element, 'Invalidation_Text').value).toBe('.invalid');
+    expect(getButton(element, 'Save & Deploy').disabled).toBe(true);
+    expect(getButton(element, 'Reset').disabled).toBe(true);
+    expect(element.shadowRoot.querySelector('.slds-text-color_success')).toBeNull();
   });
 });

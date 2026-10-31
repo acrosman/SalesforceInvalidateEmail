@@ -50,6 +50,10 @@ export default class InvalidateEmailFieldsList extends NavigationMixin(Lightning
 
   @wire(getInvalidateEmailFields)
   wiredInvalidateEmailFields({ error, data }) {
+    // The wire first provisions with neither data nor error; keep loading until one arrives
+    if (!data && !error) {
+      return;
+    }
     this.isLoading = false;
     if (data) {
       // Convert map to list
