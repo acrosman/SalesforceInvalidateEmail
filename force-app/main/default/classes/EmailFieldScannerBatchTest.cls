@@ -93,6 +93,48 @@ private class EmailFieldScannerBatchTest {
   }
 
   @IsTest
+  static void testGetExistingMetadataKeys() {
+    Test.startTest();
+    Set<String> keys = EmailFieldScannerBatch.getExistingMetadataKeys();
+    Test.stopTest();
+
+    // Keys are built from API names, not the DurableIds stored in metadata
+    System.assert(
+      keys.contains('Contact.Email'),
+      'Expected Contact.Email from the packaged metadata record'
+    );
+    for (String key : keys) {
+      System.assertEquals(
+        2,
+        key.split('\\.').size(),
+        'Expected keys in Object.Field form: ' + key
+      );
+    }
+  }
+
+  @IsTest
+  static void testStartFiltersExistingMetadataFields() {
+    EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
+
+    Test.startTest();
+    batch.start(null);
+    batch.scanObjectForEmailFields('Contact');
+    Test.stopTest();
+
+    System.assert(
+      batch.existingMetadataKeys.contains('Contact.Email'),
+      'Expected existing metadata keys to use API names'
+    );
+    for (EmailFieldScannerBatch.EmailFieldInfo field : batch.emailFieldsFound) {
+      System.assertNotEquals(
+        'Contact.Email',
+        field.objectName + '.' + field.fieldName,
+        'Expected configured fields to be filtered from scan results'
+      );
+    }
+  }
+
+  @IsTest
   static void testDeployCustomMetadataRecords() {
     // Create a batch instance and add some test email fields
     EmailFieldScannerBatch batch = new EmailFieldScannerBatch();
