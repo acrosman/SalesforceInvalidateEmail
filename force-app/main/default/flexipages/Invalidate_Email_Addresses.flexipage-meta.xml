@@ -9,20 +9,26 @@
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>invalidateEmailJobStatus</componentName>
-                <identifier>c_invalidateEmailJobStatus</identifier>
+                <componentName>invalidateEmailFieldStatus</componentName>
+                <identifier>c_invalidateEmailFieldStatus</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>invalidateEmailSettings</componentName>
-                <identifier>c_invalidateEmailSettings</identifier>
+                <componentName>invalidateEmailJobStatus</componentName>
+                <identifier>c_invalidateEmailJobStatus</identifier>
             </componentInstance>
         </itemInstances>
         <name>column1</name>
         <type>Region</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentName>invalidateEmailSettings</componentName>
+                <identifier>c_invalidateEmailSettings</identifier>
+            </componentInstance>
+        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentName>invalidateEmailFieldsList</componentName>

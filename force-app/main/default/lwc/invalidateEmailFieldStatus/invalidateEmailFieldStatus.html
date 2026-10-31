@@ -1,0 +1,74 @@
+<template>
+  <lightning-card title="Field Invalidation Status" icon-name="standard:metrics">
+    <div slot="actions">
+      <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh" title="Refresh Field Status"
+        onclick={handleRefreshClick}>
+      </lightning-button-icon>
+    </div>
+    <div class="slds-m-around_medium">
+      <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+      </template>
+
+      <template if:true={error}>
+        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+          <h2>Error loading field status: {error}</h2>
+        </div>
+      </template>
+
+      <template if:true={hasData}>
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">
+                <div class="slds-truncate" title="Object">Object</div>
+              </th>
+              <th scope="col">
+                <div class="slds-truncate" title="Field">Field</div>
+              </th>
+              <th scope="col" class="slds-text-align_right">
+                <div class="slds-truncate" title="Non-blank Records">Non-blank Records</div>
+              </th>
+              <th scope="col" class="slds-text-align_right">
+                <div class="slds-truncate" title="% Invalidated">% Invalidated</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={fields} for:item="row">
+              <tr key={row.key} data-key={row.key}>
+                <td>{row.objectName}</td>
+                <td>{row.fieldName}</td>
+                <template if:true={row.isCounting}>
+                  <td colspan="2" class="counting slds-text-align_right slds-text-color_weak">Counting…</td>
+                </template>
+                <template if:true={row.rowError}>
+                  <td colspan="2" class="row-error slds-text-align_right slds-text-color_error">
+                    <lightning-icon icon-name="utility:warning" size="xx-small" variant="error"
+                      class="slds-m-right_xx-small"></lightning-icon>
+                    {row.rowError}
+                  </td>
+                </template>
+                <template if:true={row.hasCounts}>
+                  <td class="non-blank slds-text-align_right">
+                    <lightning-formatted-number value={row.nonBlankCount}></lightning-formatted-number>
+                  </td>
+                  <td class="percent slds-text-align_right">
+                    <lightning-formatted-number value={row.percentInvalidated} format-style="percent"
+                      maximum-fraction-digits="1"></lightning-formatted-number>
+                  </td>
+                </template>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <template if:true={showEmptyState}>
+        <div class="slds-text-align_center slds-p-around_medium">
+          <p class="slds-text-color_weak">No Invalidate Email Fields configured.</p>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>
