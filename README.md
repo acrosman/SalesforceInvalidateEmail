@@ -1,5 +1,7 @@
 # Salesforce Email Invalidator
 
+[![Tests](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/tests.yml?query=branch%3Amain)
+
 A simple tool to invalidate all the email addresses in your Salesforce org. This is meant to be used in Sandboxes to avoid accidentally sending email to everyone in the org (which comes up more than people expect).
 
 Currently this tool consists of unpackaged metadata. At some point I'll work on getting it packaged, but this is still an early draft.
