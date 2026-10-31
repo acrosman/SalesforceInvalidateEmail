@@ -37,7 +37,7 @@ If no issue number was provided, ask for one before doing anything else.
   - Ask if you should create new issues for them.
 - Match the surrounding code style and conventions.
 - Add or update tests where appropriate, and run the relevant tests/linters before calling the work done. Report failures honestly.
-- Commit with clear messages that reference the issue (e.g. `Fix X (#$ARGUMENTS)`). Sign your commits.
+- Commit with clear messages that reference the issue (e.g. `Fix X (#$ARGUMENTS)`). End each commit message with a `Co-Authored-By:` trailer naming the AI model, so the commit is marked as AI-generated. This is not GPG signing; don't use `git commit -S`.
 
 ## 5. Ask before opening a PR
 
@@ -47,5 +47,15 @@ If no issue number was provided, ask for one before doing anything else.
   - A short summary of the change
   - `Fixes #$ARGUMENTS` so the issue closes on merge
   - How it was tested
-  - Sign your name.
+  - An attribution line at the end saying the PR was generated with Claude Code. Don't sign the user's name.
 - Share the PR link when done.
+
+## Marking AI-generated work
+
+Everything you write on the user's behalf must say it was AI-generated, so reviewers know what to look at closely:
+
+- **Commits:** `Co-Authored-By:` trailer (step 4).
+- **PR descriptions:** attribution line at the end (step 5).
+- **Issue and PR comments:** start or end the comment with a short note that Claude wrote it, e.g. `_Comment by Claude Code._`
+
+"Sign" here never means cryptographic signing with GPG or SSH.
