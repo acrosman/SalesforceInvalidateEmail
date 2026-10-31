@@ -1,0 +1,32 @@
+# Runs the LWC Jest tests for every pull request to main.
+name: Jest Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch or PR cancels the run already in progress.
+concurrency:
+  group: jest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jest:
+    name: Jest tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # package-lock.json is not committed, so npm ci can't be used.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Jest tests
+        run: npm run test:unit

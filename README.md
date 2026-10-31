@@ -1,6 +1,7 @@
 # Salesforce Email Invalidator
 
-[![Tests](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/tests.yml?query=branch%3Amain)
+[![Jest Tests](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/jest.yml/badge.svg?branch=main)](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/jest.yml?query=branch%3Amain)
+[![Apex Tests](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/apex.yml/badge.svg?branch=main)](https://github.com/acrosman/SalesforceInvalidateEmail/actions/workflows/apex.yml?query=branch%3Amain)
 
 A simple tool to invalidate all the email addresses in your Salesforce org. This is meant to be used in Sandboxes to avoid accidentally sending email to everyone in the org (which comes up more than people expect).
 
@@ -46,7 +47,7 @@ When you create a sandbox there is a field that allows you to indicate classes y
 
 ## Automated Testing
 
-Every pull request to `main` runs the [Tests workflow](.github/workflows/tests.yml), which runs the LWC Jest tests and the Apex tests. The Apex tests run in a new scratch org that is deleted when the run finishes.
+Every pull request to `main` runs two workflows: [Jest Tests](.github/workflows/jest.yml) runs the LWC Jest tests, and [Apex Tests](.github/workflows/apex.yml) runs the Apex tests. The Apex tests run in a new scratch org that is deleted when the run finishes.
 
 The Apex job signs in to the project's Dev Hub using the JWT bearer flow and an External Client App, and needs these repository secrets:
 

@@ -1,7 +1,7 @@
-# Runs the LWC Jest tests and the Apex tests for every pull request to main.
-# The Apex tests run in a new scratch org created from the project Dev Hub.
+# Runs the Apex tests for every pull request to main, in a new scratch org
+# created from the project Dev Hub.
 # See "Automated Testing" in README.md for the required repository secrets.
-name: Tests
+name: Apex Tests
 
 on:
   pull_request:
@@ -12,27 +12,10 @@ on:
 
 # A newer push to the same branch or PR cancels the run already in progress.
 concurrency:
-  group: tests-${{ github.ref }}
+  group: apex-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  jest:
-    name: Jest tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      # package-lock.json is not committed, so npm ci can't be used.
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run Jest tests
-        run: npm run test:unit
-
   apex:
     name: Apex tests
     runs-on: ubuntu-latest

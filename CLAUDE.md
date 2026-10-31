@@ -50,7 +50,7 @@ Components coordinate through the `Email_Invalidator_Jobs` message channel (`mes
 ### Other
 
 - `config/project-scratch-def.json`: scratch org definition.
-- `.github/workflows/tests.yml`: CI that runs Jest and Apex tests (in a throwaway scratch org) on PRs to `main`.
+- `.github/workflows/jest.yml` and `apex.yml`: CI that runs the Jest tests and the Apex tests (in a throwaway scratch org) on PRs to `main`.
 - `.claude/skills/fix-issue/`: the `/fix-issue` workflow for GitHub issues.
 - `scripts/`: Salesforce DX template samples, not used.
 - `docs/`: README screenshot.
