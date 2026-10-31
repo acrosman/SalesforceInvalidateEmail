@@ -32,9 +32,11 @@ The Email Invalidator Jobs card on the app page lists the invalidate, restore, a
 
 The Field Invalidation Status card lists each configured email field with the number of records that have a value in that field and the percentage of those values that currently end with the invalidation text. Each field is counted separately, so if one field can't be counted its row shows the error and the others still load. The card refreshes itself when an Email Invalidator job finishes.
 
-## Permission Set
+## Permission Sets
 
 Anyone you want to be able to use this process should be assigned the included Invalidate Emails permission set.
+
+Users who only need to build or run flows that use the Invalidate All Configured Emails or Restore All Configured Emails flow actions can instead be assigned the Invalidation Flow Users permission set.
 
 ## Sandbox Post Copy Process
 
