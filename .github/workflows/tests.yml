@@ -25,10 +25,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
 
+      # package-lock.json is not committed, so npm ci can't be used.
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run Jest tests
         run: npm run test:unit
@@ -40,6 +40,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     env:
       SF_DISABLE_TELEMETRY: true
+      # Scratch org signup can't replicate the Dev Hub's External Client
+      # App, so use Salesforce's built-in CLI Connected App for signup.
+      SF_SCRATCH_SIGNUP_CONNECTED_APP: PlatformCLI
+      SF_SCRATCH_SIGNUP_CALLBACK_URL: http://localhost:1717/OauthRedirect
     steps:
       - uses: actions/checkout@v5
 
