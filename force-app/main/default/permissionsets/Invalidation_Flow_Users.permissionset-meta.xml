@@ -8,14 +8,6 @@
         <apexClass>InvalidateEmailUndoFlowAction</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <customMetadataTypeAccesses>
-        <enabled>true</enabled>
-        <name>Email_Invalidator_Fields__mdt</name>
-    </customMetadataTypeAccesses>
-    <customMetadataTypeAccesses>
-        <enabled>true</enabled>
-        <name>Email_Invalidator_Settings__mdt</name>
-    </customMetadataTypeAccesses>
     <description>Provides access to the Apex actions needed to build and run flows that invalidate or restore email addresses.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Invalidation Flow Users</label>
