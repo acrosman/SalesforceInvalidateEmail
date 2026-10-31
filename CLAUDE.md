@@ -75,7 +75,7 @@ Scratch orgs come from the project's Dev Hub, which is set as `target-dev-hub` i
 
 ## Conventions
 
-- Prettier (with `prettier-plugin-apex` and `@prettier/plugin-xml`, `trailingComma: none`) formats everything. There is no pre-commit hook, so run `npm run prettier` and `npm run lint` before committing.
+- Prettier (with `prettier-plugin-apex` and `@prettier/plugin-xml`, `trailingComma: none`) formats everything. Run `npm run prettier` and `npm run lint` before committing.
 - `package-lock.json` is gitignored, so use `npm install`, not `npm ci`.
 - Add or update Apex tests and Jest tests with any behavior change. Apex code coverage MUST stay above 75%.
 - Branches: `bug/<slug>-<issue>` or `feature/<slug>-<issue>`. Commit messages reference the issue, e.g. `Fix X (#12)`.
