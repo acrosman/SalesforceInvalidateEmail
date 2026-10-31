@@ -22,6 +22,10 @@ You can find the app in the app switcher by searching for `Invalidate Email`.
 
 The Email Invalidator Jobs card on the app page lists the invalidate, restore, and field scan batch jobs from the last 7 days, with their status, progress, and any errors. While jobs are queued or running the card refreshes itself every few seconds, and it stops once they have all finished. The object each job is processing is shown for jobs started from the page during your current visit.
 
+### Field Invalidation Status
+
+The Field Invalidation Status card lists each configured email field with the number of records that have a value in that field and the percentage of those values that currently end with the invalidation text. Each field is counted separately, so if one field can't be counted its row shows the error and the others still load. The card refreshes itself when an Email Invalidator job finishes.
+
 ## Permission Set
 
 Anyone you want to be able to use this process should be assigned the included Invalidate Emails permission set.
