@@ -186,7 +186,7 @@ export default class EmailFieldScanner extends LightningElement {
         this.showToast('Error', result.message, 'error');
       }
     } catch (error) {
-      this.showToast('Error', 'An unexpected error occurred: ' + error.body?.message || error.message, 'error');
+      this.showToast('Error', 'An unexpected error occurred: ' + (error.body?.message || error.message), 'error');
     } finally {
       this.isProcessing = false;
     }

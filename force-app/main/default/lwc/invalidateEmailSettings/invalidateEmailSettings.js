@@ -10,9 +10,14 @@ export default class InvalidateEmailSettings extends LightningElement {
   @track isSaving = false;
   @track hasModifications = false;
 
+  // The provisioned wire result, needed by refreshApex and to reset edits
+  wiredSettingsResult;
+
   // Wire the getCurrentSettings method
   @wire(getCurrentSettings)
-  wiredSettings({ error, data }) {
+  wiredSettings(result) {
+    this.wiredSettingsResult = result;
+    const { error, data } = result;
     if (data) {
       if (data.success) {
         this.settings = data.settings.map(setting => ({
@@ -66,7 +71,7 @@ export default class InvalidateEmailSettings extends LightningElement {
         this.hasModifications = false;
 
         // Refresh the wire service to get updated values
-        refreshApex(this.wiredSettings);
+        refreshApex(this.wiredSettingsResult);
       } else {
         this.showToast('Error', result.message, 'error');
       }
@@ -79,15 +84,13 @@ export default class InvalidateEmailSettings extends LightningElement {
 
   // Handle reset button click
   handleReset() {
-    // Reset all settings to their original values
-    this.settings = this.settings.map(setting => ({
+    // Reset all settings to the values last loaded from the server
+    const loadedSettings = this.wiredSettingsResult?.data?.settings || [];
+    this.settings = loadedSettings.map(setting => ({
       ...setting,
       isModified: false
     }));
     this.hasModifications = false;
-
-    // Refresh the component to reload original values
-    refreshApex(this.wiredSettings);
   }
 
   // Show toast message
