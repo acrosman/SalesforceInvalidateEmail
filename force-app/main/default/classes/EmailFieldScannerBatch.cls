@@ -38,10 +38,7 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
 
     try {
       // Build existing metadata keys once to filter during discovery
-      Map<String, Email_Invalidator_Fields__mdt> existing = Email_Invalidator_Fields__mdt.getAll();
-      for (Email_Invalidator_Fields__mdt e : existing.values()) {
-        existingMetadataKeys.add(e.Field_Name__c);
-      }
+      existingMetadataKeys = getExistingMetadataKeys();
 
       // Query all entity definitions to get object names
       List<EntityDefinition> entities = [
@@ -80,6 +77,31 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
 
     this.objectsToProcess = allObjects;
     return allObjects;
+  }
+
+  // Builds Object.Field keys for fields that already have metadata records.
+  // The records store DurableIds, which contain Ids for custom fields, so
+  // resolve them to API names before comparing against scanned fields.
+  @TestVisible
+  private static Set<String> getExistingMetadataKeys() {
+    return getExistingMetadataKeys(Email_Invalidator_Fields__mdt.getAll());
+  }
+
+  private static Set<String> getExistingMetadataKeys(
+    Map<String, Email_Invalidator_Fields__mdt> existingFields
+  ) {
+    Set<String> keys = new Set<String>();
+    Map<String, Set<String>> objectFields = InvalidateEmailBatch.getFieldDetails(
+      existingFields
+    );
+
+    for (String objectName : objectFields.keySet()) {
+      for (String fieldName : objectFields.get(objectName)) {
+        keys.add(objectName + '.' + fieldName);
+      }
+    }
+
+    return keys;
   }
 
   @TestVisible
@@ -184,13 +206,7 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
   @TestVisible
   private void cacheEmailFieldResults() {
     // Get existing custom metadata records to filter out duplicates
-    Set<String> existingRecords = new Set<String>();
-    Map<String, Email_Invalidator_Fields__mdt> existingFields = Email_Invalidator_Fields__mdt.getAll();
-
-    for (Email_Invalidator_Fields__mdt existing : existingFields.values()) {
-      String key = existing.Object__c + '.' + existing.Field_Name__c;
-      existingRecords.add(key);
-    }
+    Set<String> existingRecords = getExistingMetadataKeys();
 
     // Filter out existing records and prepare new ones for caching
     List<EmailFieldInfo> newEmailFields = new List<EmailFieldInfo>();
@@ -284,13 +300,8 @@ public without sharing class EmailFieldScannerBatch implements Database.Batchabl
   @TestVisible
   private void deployCustomMetadataRecords() {
     // Get existing custom metadata records to avoid duplicates
-    Set<String> existingRecords = new Set<String>();
     Map<String, Email_Invalidator_Fields__mdt> existingFields = Email_Invalidator_Fields__mdt.getAll();
-
-    for (Email_Invalidator_Fields__mdt existing : existingFields.values()) {
-      String key = existing.Object__c + '.' + existing.Field_Name__c;
-      existingRecords.add(key);
-    }
+    Set<String> existingRecords = getExistingMetadataKeys(existingFields);
 
     // Filter out existing records and prepare new ones for deployment
     List<EmailFieldInfo> newEmailFields = new List<EmailFieldInfo>();
