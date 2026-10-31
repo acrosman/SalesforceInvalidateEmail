@@ -1,0 +1,97 @@
+# Runs the LWC Jest tests and the Apex tests for every pull request to main.
+# The Apex tests run in a new scratch org created from the project Dev Hub.
+# See "Automated Testing" in README.md for the required repository secrets.
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch or PR cancels the run already in progress.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jest:
+    name: Jest tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # package-lock.json is not committed, so npm ci can't be used.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Jest tests
+        run: npm run test:unit
+
+  apex:
+    name: Apex tests
+    runs-on: ubuntu-latest
+    # Secrets are not available to pull requests from forks, so skip them.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      SF_DISABLE_TELEMETRY: true
+      # Scratch org signup can't replicate the Dev Hub's External Client
+      # App, so use Salesforce's built-in CLI Connected App for signup.
+      SF_SCRATCH_SIGNUP_CONNECTED_APP: PlatformCLI
+      SF_SCRATCH_SIGNUP_CALLBACK_URL: http://localhost:1717/OauthRedirect
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli@2
+
+      - name: Authorize Dev Hub
+        env:
+          SF_CONSUMER_KEY: ${{ secrets.SF_CONSUMER_KEY }}
+          SF_JWT_KEY: ${{ secrets.SF_JWT_KEY }}
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+        run: |
+          echo "$SF_JWT_KEY" > "$RUNNER_TEMP/server.key"
+          sf org login jwt \
+            --client-id "$SF_CONSUMER_KEY" \
+            --jwt-key-file "$RUNNER_TEMP/server.key" \
+            --username "$SF_USERNAME" \
+            --instance-url https://login.salesforce.com \
+            --alias devhub \
+            --set-default-dev-hub
+          rm "$RUNNER_TEMP/server.key"
+
+      - name: Create scratch org
+        run: |
+          sf org create scratch \
+            --definition-file config/project-scratch-def.json \
+            --alias ci-scratch \
+            --set-default \
+            --duration-days 1 \
+            --wait 15
+
+      - name: Deploy source
+        run: sf project deploy start --source-dir force-app --wait 30
+
+      - name: Run Apex tests
+        run: |
+          sf apex run test \
+            --test-level RunLocalTests \
+            --code-coverage \
+            --result-format human \
+            --wait 30
+
+      # Always delete the scratch org so it doesn't count against the
+      # Dev Hub's active scratch org limit.
+      - name: Delete scratch org
+        if: always()
+        run: sf org delete scratch --target-org ci-scratch --no-prompt || true
