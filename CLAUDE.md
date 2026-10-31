@@ -55,6 +55,10 @@ Components coordinate through the `Email_Invalidator_Jobs` message channel (`mes
 - `scripts/`: Salesforce DX template samples, not used.
 - `docs/`: README screenshot.
 
+## Test Coverage
+
+Test coverage for Apex code must be above 75% before work is considered ready for a pull request and review. It can be handled in separate commits from the main changes, but unless otherwise instructed coverage must be checked and updated before creating a pull request.
+
 ## Commands
 
 ```sh
@@ -73,9 +77,10 @@ Scratch orgs come from the project's Dev Hub, which is set as `target-dev-hub` i
 
 - Prettier (with `prettier-plugin-apex` and `@prettier/plugin-xml`, `trailingComma: none`) formats everything. There is no pre-commit hook, so run `npm run prettier` and `npm run lint` before committing.
 - `package-lock.json` is gitignored, so use `npm install`, not `npm ci`.
-- Add or update Apex tests and Jest tests with any behavior change. Apex code coverage must stay above 75% to deploy to production.
+- Add or update Apex tests and Jest tests with any behavior change. Apex code coverage MUST stay above 75%.
 - Branches: `bug/<slug>-<issue>` or `feature/<slug>-<issue>`. Commit messages reference the issue, e.g. `Fix X (#12)`.
 - Keep the README up to date when user-facing behavior changes.
+- PR Descriptions should be short, no more than 500 words.
 
 ## Marking AI-generated work
 
