@@ -9,18 +9,8 @@
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>invalidateEmailSettings</componentName>
-                <identifier>c_invalidateEmailSettings</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>column1</name>
-        <type>Region</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentName>invalidateEmailFieldsList</componentName>
-                <identifier>c_invalidateEmailFieldsList</identifier>
+                <componentName>invalidateEmailFieldStatus</componentName>
+                <identifier>c_invalidateEmailFieldStatus</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
@@ -29,16 +19,26 @@
                 <identifier>c_invalidateEmailJobStatus</identifier>
             </componentInstance>
         </itemInstances>
+        <name>column1</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>emailFieldScanner</componentName>
-                <identifier>c_emailFieldScanner</identifier>
+                <componentName>invalidateEmailSettings</componentName>
+                <identifier>c_invalidateEmailSettings</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>invalidateEmailFieldStatus</componentName>
-                <identifier>c_invalidateEmailFieldStatus</identifier>
+                <componentName>invalidateEmailFieldsList</componentName>
+                <identifier>c_invalidateEmailFieldsList</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>emailFieldScanner</componentName>
+                <identifier>c_emailFieldScanner</identifier>
             </componentInstance>
         </itemInstances>
         <name>column2</name>
