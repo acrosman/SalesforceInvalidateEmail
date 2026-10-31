@@ -25,4 +25,14 @@ public class InvalidateEmailTestDataFactory {
     insert testContacts;
     return testContacts;
   }
+
+  /**
+   * Builds a valid email address of an exact length
+   * @param length Total length of the address (16 to 116)
+   * @return String email address
+   */
+  public static String buildEmailOfLength(Integer length) {
+    // Pad the domain with short labels so every part of the address stays valid.
+    return 'test@' + 'abcdefghi.'.repeat(10).left(length - 16) + 'example.com';
+  }
 }

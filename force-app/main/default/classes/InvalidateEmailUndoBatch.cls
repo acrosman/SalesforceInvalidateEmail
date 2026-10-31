@@ -16,19 +16,22 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
 
     // Create a comma spliced string of fields.
     String preppedFields = 'Id';
-    String invalidationText = String.escapeSingleQuotes(
-      InvalidateEmailSettings.getInvalidationText()
-    );
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
     String whereClause = ' WHERE Id!=\'\' AND (';
     for (String f : fields) {
       preppedFields = preppedFields + ',' + f;
-      whereClause =
-        whereClause +
-        ' ' +
-        f +
-        ' LIKE \'%' +
-        invalidationText +
-        '\' OR';
+      // Values cut off at the field's limit end with only the start of the
+      // invalidation text, so match every leading part of it. Values that
+      // don't need restoring are skipped in execute.
+      for (Integer i = invalidationText.length(); i > 0; i--) {
+        whereClause =
+          whereClause +
+          ' ' +
+          f +
+          ' LIKE \'%' +
+          String.escapeSingleQuotes(invalidationText.left(i)) +
+          '\' OR';
+      }
     }
     whereClause = whereClause + ' Id=\'\')';
 
@@ -43,6 +46,7 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
 
   public void execute(Database.BatchableContext context, List<SObject> scope) {
     List<SObject> recordsToUpdate = new List<SObject>();
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
 
     for (SObject record : scope) {
       // Track changes per record so it is only added to the update list once,
@@ -52,13 +56,15 @@ public without sharing class InvalidateEmailUndoBatch implements Database.Batcha
         try {
           System.debug('Processing record: ' + record);
           String currentEmail = (String) record.get(emailField);
-          String invalidationText = InvalidateEmailSettings.getInvalidationText();
           if (
             String.isNotBlank(currentEmail) &&
-            currentEmail.endsWith(invalidationText)
+            InvalidateEmailBatch.isInvalidated(currentEmail, invalidationText)
           ) {
             // Restore the email by removing the configured invalidation text suffix
-            String restoredEmail = currentEmail.removeEnd(invalidationText);
+            String restoredEmail = InvalidateEmailBatch.restoreValue(
+              currentEmail,
+              invalidationText
+            );
 
             record.put(emailField, restoredEmail);
             changed = true;

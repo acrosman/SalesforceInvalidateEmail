@@ -197,6 +197,131 @@ private class InvalidateEmailBatchTest {
   }
 
   @isTest
+  static void testInvalidateValue() {
+    String shortEmail = 'a@b.com';
+    String fitsEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(72);
+    String nearLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(
+      77
+    );
+    String atLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(80);
+
+    Assert.areEqual(
+      'a@b.com.invalid',
+      InvalidateEmailBatch.invalidateValue(shortEmail, '.invalid'),
+      'Short emails should have the full text appended'
+    );
+    Assert.areEqual(
+      fitsEmail + '.invalid',
+      InvalidateEmailBatch.invalidateValue(fitsEmail, '.invalid'),
+      'Emails that fit exactly should have the full text appended'
+    );
+    Assert.areEqual(
+      nearLimitEmail + '.in',
+      InvalidateEmailBatch.invalidateValue(nearLimitEmail, '.invalid'),
+      'Emails under the limit should be cut off at the limit'
+    );
+    Assert.areEqual(
+      atLimitEmail.left(72) + '.invalid',
+      InvalidateEmailBatch.invalidateValue(atLimitEmail, '.invalid'),
+      'Emails at the limit should be shortened to fit the full text'
+    );
+  }
+
+  @isTest
+  static void testIsInvalidated() {
+    String nearLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(
+      77
+    );
+
+    Assert.isTrue(
+      InvalidateEmailBatch.isInvalidated('a@b.com.invalid', '.invalid'),
+      'Emails ending with the full text are invalidated'
+    );
+    Assert.isTrue(
+      InvalidateEmailBatch.isInvalidated(nearLimitEmail + '.in', '.invalid'),
+      'Emails at the limit ending with part of the text are invalidated'
+    );
+    Assert.isFalse(
+      InvalidateEmailBatch.isInvalidated('a@b.com', '.invalid'),
+      'Plain emails are not invalidated'
+    );
+    Assert.isFalse(
+      InvalidateEmailBatch.isInvalidated('a@b.co.in', '.invalid'),
+      'Emails under the limit ending with part of the text are not invalidated'
+    );
+  }
+
+  @isTest
+  static void testBatchTruncatesLongEmails() {
+    String nearLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(
+      77
+    );
+    String atLimitEmail = InvalidateEmailTestDataFactory.buildEmailOfLength(80);
+    insert new List<Contact>{
+      new Contact(LastName = 'NearLimit', Email = nearLimitEmail),
+      new Contact(LastName = 'AtLimit', Email = atLimitEmail)
+    };
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom
+
+    Test.stopTest();
+
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    Map<String, String> emailsByName = new Map<String, String>();
+    for (Contact contact : [
+      SELECT LastName, Email
+      FROM Contact
+      WHERE LastName IN ('NearLimit', 'AtLimit')
+    ]) {
+      emailsByName.put(contact.LastName, contact.Email);
+    }
+
+    Assert.areEqual(
+      InvalidateEmailBatch.invalidateValue(nearLimitEmail, invalidationText),
+      emailsByName.get('NearLimit'),
+      'Emails under the limit should be invalidated and cut off at the limit'
+    );
+    Assert.areEqual(
+      atLimitEmail.left(80 - invalidationText.length()) + invalidationText,
+      emailsByName.get('AtLimit'),
+      'Emails at the limit should be shortened to fit the full text'
+    );
+  }
+
+  @isTest
+  static void testBatchNoDoubleInvalidTruncated() {
+    String invalidationText = InvalidateEmailSettings.getInvalidationText();
+    String truncatedEmail = InvalidateEmailBatch.invalidateValue(
+      InvalidateEmailTestDataFactory.buildEmailOfLength(77),
+      invalidationText
+    );
+    insert new Contact(LastName = 'Truncated', Email = truncatedEmail);
+
+    Test.startTest();
+
+    InvalidateEmailBatch batch = new InvalidateEmailBatch(
+      'Contact',
+      new Set<String>{ 'Email' }
+    );
+    Database.executeBatch(batch, contactCount + 5); // Added 5 for headroom
+
+    Test.stopTest();
+
+    Contact contact = [SELECT Email FROM Contact WHERE LastName = 'Truncated'];
+    Assert.areEqual(
+      truncatedEmail,
+      contact.Email,
+      'Emails already cut off at the limit should not be invalidated again'
+    );
+  }
+
+  @isTest
   static void testBatchErrorHandling() {
     // Create a contact with a very long email to potentially cause an error
     Contact testContact = new Contact(

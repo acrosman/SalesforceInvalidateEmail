@@ -14,6 +14,12 @@ The project provides an Invalid Email App which shows a list of the fields that 
 
 You can add Custom Metadata records to list all email fields on any object, so all emails can be disabled.
 
+Email fields are limited to 80 characters, so the invalidated value is kept within the field's limit:
+
+- If the invalidated value fits, `.invalid` is appended as usual.
+- If the address is shorter than the limit but the invalidated value is not, the value is cut off at the limit (for example ending in `.inv`). These addresses can still be fully restored.
+- If the address is already at the limit, the end of the address is removed to make room for the full `.invalid`. These addresses can NOT be fully restored.
+
 You can find the app in the app switcher by searching for `Invalidate Email`.
 
 ![Screenshot of the app's main interface](docs/InvalidatorScreenShot.png)
