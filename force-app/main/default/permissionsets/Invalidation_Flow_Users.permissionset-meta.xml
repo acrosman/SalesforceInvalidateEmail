@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>InvalidateEmailFlowAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>InvalidateEmailUndoFlowAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Provides access to the Apex actions needed to build and run flows that invalidate or restore email addresses.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Invalidation Flow Users</label>
+</PermissionSet>
