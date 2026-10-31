@@ -42,6 +42,16 @@ There is also a SandboxPostCopy class you can use to have the process run as soo
 
 When you create a sandbox there is a field that allows you to indicate classes you want run after the process completes. Enter `InvalidateEmailSandboxPostCopy` and the process defined here will run.
 
+## Automated Testing
+
+Every pull request to `main` runs the [Tests workflow](.github/workflows/tests.yml), which runs the LWC Jest tests and the Apex tests. The Apex tests run in a new scratch org that is deleted when the run finishes.
+
+The Apex job signs in to the project's Dev Hub using the JWT bearer flow and an External Client App, and needs these repository secrets:
+
+- `SF_CONSUMER_KEY`: the External Client App's consumer key.
+- `SF_JWT_KEY`: the private key matching the certificate uploaded to the External Client App.
+- `SF_USERNAME`: the Dev Hub user the workflow signs in as.
+
 ## Planned Features
 
 - Scan for Email Fields: It would be helpful to have a process that scans the org for email fields and adds custom metadata records for those fields to the system.
