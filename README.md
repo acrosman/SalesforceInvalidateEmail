@@ -9,7 +9,67 @@ Currently this tool consists of unpackaged metadata. At some point I'll work on 
 
 ## Installation
 
-Currently this project just uses loose metadata and is not packaged. To install it, you need to clone this repo, or download its content. Then using sf cli run: `sf project deploy start`
+This project is loose metadata, not a package, so you install it by deploying the source with the Salesforce CLI.
+
+### Prerequisites
+
+- [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) (`sf`).
+- [Git](https://git-scm.com/), or download this repository as a zip file.
+- A user in the target org who can deploy metadata, such as a System Administrator.
+
+### Choose an org
+
+- **A sandbox** if you only want to invalidate emails in that sandbox.
+- **Production** if you want the [Sandbox Post Copy Process](#sandbox-post-copy-process) to run when you create or refresh sandboxes. Sandboxes copy their metadata from production, so the class has to be in production first. Nothing runs in production unless someone starts it.
+
+### Deploy
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/acrosman/SalesforceInvalidateEmail.git
+   cd SalesforceInvalidateEmail
+   ```
+
+2. Log in to the org and give it an alias. For a sandbox add `--instance-url https://test.salesforce.com`:
+
+   ```sh
+   sf org login web --alias invalidator-target
+   ```
+
+3. Deploy the source. Production deploys must run the Apex tests, so add `--test-level RunLocalTests` there:
+
+   ```sh
+   sf project deploy start --source-dir force-app --target-org invalidator-target
+   ```
+
+4. Assign the Invalidate Emails permission set to each user who will run the tool (see [Permission Sets](#permission-sets)):
+
+   ```sh
+   sf org assign permset --name Invalidate_Emails --target-org invalidator-target
+   ```
+
+   Without `--on-behalf-of` this assigns it to the logged-in user. You can also assign it in Setup under Permission Sets.
+
+The deploy includes a field record for `Contact.Email` and the `Invalidation_Text` setting set to `.invalid`. Deploying again later resets those two records to the values in this repository.
+
+### Set up
+
+1. Open the app launcher and search for `Invalidate Email` to open the Invalidate Email Addresses app.
+2. Choose the email fields to invalidate. `Contact.Email` is included. To add more fields, either:
+   - Click **Scan For Email Fields**. When the scan job finishes, the Email Field Scanner Results card lists email fields that aren't configured yet. Select the ones you want and click **Include Selected Fields**.
+   - Or click **Manage** on the Invalidate Email Fields Configuration card, click **New**, and pick the Object and Field Name.
+3. Optionally, change the text added to each address in the Email Invalidator Settings card and click **Save & Deploy**. The default is `.invalid`.
+
+Scanned fields and settings are saved by deploying Custom Metadata, which finishes in the background. They can take a minute to appear. When you include scanned fields, you get an email once their deploy finishes.
+
+### Run it
+
+1. Check Setup > Email > Deliverability. While emails are being invalidated it is safest to set access to **System email only** or **No access**. New sandboxes start at **System email only**.
+2. Click **Invalidate Emails**. One batch job starts for each configured object.
+3. Follow the jobs in the Email Invalidator Jobs card. When they finish, the Field Invalidation Status card shows how many values in each field are invalidated.
+
+To undo it, click **Restore Emails**, which removes the invalidation text from the configured fields.
 
 ## Main App
 
@@ -47,6 +107,8 @@ There is also a SandboxPostCopy class you can use to have the process run as soo
 
 When you create a sandbox there is a field that allows you to indicate classes you want run after the process completes. Enter `InvalidateEmailSandboxPostCopy` and the process defined here will run.
 
+The class and the field records must be deployed to production for this to work, because the new sandbox gets its metadata from production. It invalidates the fields configured in production when the sandbox was copied.
+
 ## Automated Testing
 
 Every pull request to `main` runs two workflows: [Jest Tests](.github/workflows/jest.yml) runs the LWC Jest tests, and [Apex Tests](.github/workflows/apex.yml) runs the Apex tests. The Apex tests run in a new scratch org that is deleted when the run finishes.
@@ -57,9 +119,6 @@ The Apex job signs in to the project's Dev Hub using the JWT bearer flow and an 
 - `SF_JWT_KEY`: the private key matching the certificate uploaded to the External Client App.
 - `SF_USERNAME`: the Dev Hub user the workflow signs in as.
 
-## Planned Features
-
-- Scan for Email Fields: It would be helpful to have a process that scans the org for email fields and adds custom metadata records for those fields to the system.
-- Un-Invalidate Fields: Adding `.invalid` is helpful. It would also be nice to easily remove it again under some conditions.
+## Suggestions
 
 Suggestions welcome. Please create a new [Issue](https://github.com/acrosman/SalesforceInvalidateEmail/issues) and submit your ideas.
