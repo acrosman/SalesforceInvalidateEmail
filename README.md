@@ -14,13 +14,12 @@ This project is loose metadata, not a package, so you install it by deploying th
 ### Prerequisites
 
 - [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) (`sf`).
-- [Git](https://git-scm.com/), or download this repository as a zip file.
 - A user in the target org who can deploy metadata, such as a System Administrator.
 
 ### Choose an org
 
 - **A sandbox** if you only want to invalidate emails in that sandbox.
-- **Production** if you want the [Sandbox Post Copy Process](#sandbox-post-copy-process) to run when you create or refresh sandboxes. Sandboxes copy their metadata from production, so the class has to be in production first. Nothing runs in production unless someone starts it.
+- **Production** if you want the app to stay around after refreshes. The project provides a [Sandbox Post Copy Process](#sandbox-post-copy-process) to run when you create or refresh sandboxes. _Nothing runs in this project unless someone starts it._
 
 ### Deploy
 
@@ -49,7 +48,7 @@ This project is loose metadata, not a package, so you install it by deploying th
    sf org assign permset --name Invalidate_Emails --target-org invalidator-target
    ```
 
-   Without `--on-behalf-of` this assigns it to the logged-in user. You can also assign it in Setup under Permission Sets.
+Without `--on-behalf-of` this assigns it to the logged-in user. You can also assign it in Setup under Permission Sets.
 
 The deploy includes a field record for `Contact.Email` and the `Invalidation_Text` setting set to `.invalid`. Deploying again later resets those two records to the values in this repository.
 
@@ -65,7 +64,7 @@ Scanned fields and settings are saved by deploying Custom Metadata, which finish
 
 ### Run it
 
-1. Check Setup > Email > Deliverability. While emails are being invalidated it is safest to set access to **System email only** or **No access**. New sandboxes start at **System email only**.
+1. Check Setup > Email > Deliverability. Until emails are invalidated it is safest to set access to **System email only** or **No access**. New sandboxes start at **System email only**.
 2. Click **Invalidate Emails**. One batch job starts for each configured object.
 3. Follow the jobs in the Email Invalidator Jobs card. When they finish, the Field Invalidation Status card shows how many values in each field are invalidated.
 
@@ -73,19 +72,19 @@ To undo it, click **Restore Emails**, which removes the invalidation text from t
 
 ## Main App
 
-The project provides an Invalid Email App which shows a list of the fields that are setup to be invalided, and a Lightening Web Component to initiate the process of adding `.invalid` to the end of all values in that field.
+You can find the app in the app switcher by searching for `Invalidate Email`.
+
+![Screenshot of the app's main interface](docs/InvalidatorScreenShot.png)
+
+The project provides an Invalid Email App which shows a list of the fields that are setup to be invalided, and a Lightening Web Component to initiate the process of adding `.invalid` (or other user provided text) to the end of all values in that field.
 
 You can add Custom Metadata records to list all email fields on any object, so all emails can be disabled.
 
 Email fields are limited to 80 characters, so the invalidated value is kept within the field's limit:
 
-- If the invalidated value fits, `.invalid` is appended as usual.
-- If the address is shorter than the limit but the invalidated value is not, the value is cut off at the limit (for example ending in `.inv`). These addresses can still be fully restored.
-- If the address is already at the limit, the end of the address is removed to make room for the full `.invalid`. These addresses can NOT be fully restored.
-
-You can find the app in the app switcher by searching for `Invalidate Email`.
-
-![Screenshot of the app's main interface](docs/InvalidatorScreenShot.png)
+- If the invalidated value fits, the invalidation text is appended as usual.
+- If the invalidated value is greater than 80 characters, the value is cut off at the limit (for example ending in `.inv`). These addresses can still be fully restored.
+- If the address is 80 characters, the end of the address is removed to make room for the full invalidation text. These addresses can NOT be fully restored.
 
 ### Job Status
 
@@ -109,16 +108,6 @@ When you create a sandbox there is a field that allows you to indicate classes y
 
 The class and the field records must be deployed to production for this to work, because the new sandbox gets its metadata from production. It invalidates the fields configured in production when the sandbox was copied.
 
-## Automated Testing
-
-Every pull request to `main` runs two workflows: [Jest Tests](.github/workflows/jest.yml) runs the LWC Jest tests, and [Apex Tests](.github/workflows/apex.yml) runs the Apex tests. The Apex tests run in a new scratch org that is deleted when the run finishes.
-
-The Apex job signs in to the project's Dev Hub using the JWT bearer flow and an External Client App, and needs these repository secrets:
-
-- `SF_CONSUMER_KEY`: the External Client App's consumer key.
-- `SF_JWT_KEY`: the private key matching the certificate uploaded to the External Client App.
-- `SF_USERNAME`: the Dev Hub user the workflow signs in as.
-
 ## Suggestions
 
-Suggestions welcome. Please create a new [Issue](https://github.com/acrosman/SalesforceInvalidateEmail/issues) and submit your ideas.
+Feedback is welcome, and even appreciated. Please create a new [Issue](https://github.com/acrosman/SalesforceInvalidateEmail/issues) and submit your ideas.
